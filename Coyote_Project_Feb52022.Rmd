@@ -1,0 +1,308 @@
+---
+title: "Coyote_Project_Feb52022"
+author: "Jonathan Farr"
+date: "2/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Loading in libraries
+```{r, echo=FALSE}
+library(ordinal) # ordinal regressions 
+library(tidyverse) # data manipulation 
+library(Hmisc) # correlation coefficients
+library(lubridate) # dealing with dates
+library(viridis)
+
+library(raster) # reading in raster files
+library(sp) # making spatial points objects
+library(arcgisbinding) # reading in coyote data
+arc.check_product() # checking ARCGIS license
+```
+
+
+
+
+
+# Spatial Data
+
+## Reading in Coyote Points
+```{r}
+# read in coyote data from ArcGIS
+Coyotes_arc = arc.select(arc.open("UrbanCoyotesArcGIS/UrbanCoyotes.gdb/JJFCoyotesMarch82021_Projected"))
+
+Coyotes.sp <- arc.data2sp(Coyotes_arc) # converting to spatial points object
+
+
+```
+
+## Reading in Raster files
+With each line of code we are: 
+a) reading in a raster from a specific folder
+b) dividing the values in that raster by the max # cells in a buffer zone to generate proportions
+c) using the extract function to assign those raster values to points in Coyotes.sp
+d) adding these points to the correct data frame as a new column 
+```{r}
+# LAND COVER 100M BUFFER
+Coyotes = data.frame(x = c(1:7878))
+  
+  
+Coyotes$Com100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Com100m.tif")/317, Coyotes.sp)
+Coyotes$Res100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Res100m.tif")/317, Coyotes.sp)
+Coyotes$Mod100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Mod100m.tif")/317, Coyotes.sp)
+Coyotes$Mow100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Mow100m.tif")/317, Coyotes.sp)
+Coyotes$Nat100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Nat100m.tif")/317, Coyotes.sp)
+Coyotes$Water100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Water100m.tif")/317, Coyotes.sp)
+Coyotes$Build100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Build100m.tif")/317, Coyotes.sp)
+Coyotes$Roads100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Roads100m.tif")/317, Coyotes.sp)
+
+# LAND COVER 200M BUFFER
+Coyotes$Com200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Com200m.tif")/1257, Coyotes.sp)
+Coyotes$Res200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Res200m.tif")/1257, Coyotes.sp)
+Coyotes$Mod200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Mod200m.tif")/1257, Coyotes.sp)
+Coyotes$Mow200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Mow200m.tif")/1257, Coyotes.sp)
+Coyotes$Nat200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Nat200m.tif")/1257, Coyotes.sp)
+Coyotes$Water200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Water200m.tif")/1257, Coyotes.sp)
+Coyotes$Build200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Build200m.tif")/1257, Coyotes.sp)
+Coyotes$Roads200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Roads200m.tif")/1257, Coyotes.sp)
+
+# LAND COVER 400M BUFFER
+Coyotes$Com400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Com400m.tif")/5025, Coyotes.sp)
+Coyotes$Res400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Res400m.tif")/5025, Coyotes.sp)
+Coyotes$Mod400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Mod400m.tif")/5025, Coyotes.sp)
+Coyotes$Mow400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Mow400m.tif")/5025, Coyotes.sp)
+Coyotes$Nat400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Nat400m.tif")/5025, Coyotes.sp)
+Coyotes$Water400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Water400m.tif")/5025, Coyotes.sp)
+Coyotes$Build400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Build400m.tif")/5025, Coyotes.sp)
+Coyotes$Roads400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Roads400m.tif")/5025, Coyotes.sp)
+
+# LAND COVER 800M BUFFER
+Coyotes$Com800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Com800m.tif")/20081, Coyotes.sp)
+Coyotes$Res800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Res800m.tif")/20081, Coyotes.sp)
+Coyotes$Mod800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Mod800m.tif")/20081, Coyotes.sp)
+Coyotes$Mow800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Mow800m.tif")/20081, Coyotes.sp)
+Coyotes$Nat800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Nat800m.tif")/20081, Coyotes.sp)
+Coyotes$Water800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Water800m.tif")/20081, Coyotes.sp)
+Coyotes$Build800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Build800m.tif")/20081, Coyotes.sp)
+Coyotes$Roads800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Roads800m.tif")/20081, Coyotes.sp)
+
+# LAND COVER 1600M BUFFER
+Coyotes$Com1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Com1600m.tif")/80425, Coyotes.sp)
+Coyotes$Res1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Res1600m.tif")/80425, Coyotes.sp)
+Coyotes$Mod1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Mod1600m.tif")/80425, Coyotes.sp)
+Coyotes$Mow1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Mow1600m.tif")/80425, Coyotes.sp)
+Coyotes$Nat1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Nat1600m.tif")/80425, Coyotes.sp)
+Coyotes$Water1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Water1600m.tif")/80425, Coyotes.sp)
+Coyotes$Build1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Build1600m.tif")/80425, Coyotes.sp)
+Coyotes$Roads1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Roads1600m.tif")/80425, Coyotes.sp)
+
+
+Coyotes[is.na(Coyotes)] = 0 # raplacing all NAs with 0 
+
+# Cleaning up the environment
+Coyote_Data = cbind(Coyotes, as.data.frame(Coyotes.sp))
+
+
+rm(Coyotes_arc, Coyotes.sp, Coyotes)
+```
+
+## Cleaning Coyote Data
+We removed all reports prior to 2012, because of small sample sizes in 2010 (N=15) and 2011 (N = 112). We also binned the variable "CoyoteResponse" into 5 categories (instead of 10): Unknown (unk), Sightings (sight), Avoidance (avoid), Indifferent (indiff) and Aggressive (aggres) based on coyote boldness. 
+```{r}
+
+# cleaning all the data
+Coyotes = Coyote_Data %>% 
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>% # formatting data properly
+  filter(Date >= "2012-1-1") %>% # removing reports before Jan 1 2012
+   mutate(Bold = fct_collapse(CoyoteResponse, unk = "Unknown", sight = "0", avoid = c("1", "2"), # binning boldness
+                                     indiff = c("3", "4", "5"), aggres = c("6", "7", "8", "9")), 
+         Bold= as.ordered(Bold), #making boldness an ordered factor
+         Bold= fct_relevel(Bold, c("unk", "sight", "avoid", "indiff", "aggres")), 
+         Year_int = Year - 2011) # setting the order for increasing boldness 
+  
+rm(Coyote_Data)
+```
+
+
+
+
+
+
+
+# Question 1: How are coyote boldness or human perceptions affected by spatial (habitat, distance to roads, building density), temporal (season, time of day) and contextual factors (human activity type, presence or mention of vulnerable activity, number of coyotes, coyote health). 
+
+
+## A) Coyote Boldness - Patterns 
+
+First, making a data frame with appropriate reports - excluding all reports that are sightings. Split this data frame into seperate data frames for each of the relevant seasons (breeding, pup-rearing, and dispersal)
+```{r}
+bold.data = Coyotes %>%
+  filter(Bold != "unk", Bold != "sight") %>%
+  mutate(CoyoteResponse = as.ordered(CoyoteResponse), 
+         Hab_relevel = factor(Hab, levels = c( "res", "Com", "ModOp","Nat", "Mow", "Water")))
+# consider also removing reports of cat depredations and reports where reporters are driving
+
+bold.data.bre = subset(bold.data, Season== "Breeding") # breeding season only
+bold.data.pup = subset(bold.data, Season== "PupRearing") # pup-rearing season only
+bold.data.dis = subset(bold.data, Season== "Dispersal") # dispersal season only
+
+```
+
+
+### i) Spatial variables associated with boldness
+The most important part here is picking appropriate spatial variables to input to the model. My options are: 
+
+- Habitat as a categorical variable (modified open, mowed, natural, residential, commercial) --> problem = correlated with build and road density
+- Habitat as continuous variables (representing % land cover within buffer sizes) --> problem = some correlations exist between residential area and build/road density
+- Building density and road density (correlated)
+- Distance decay to roads 
+- Distance to city centre, and distance to river valley
+```{r}
+
+summary(clm(Bold ~ SchoolDistDecay, data = bold.data.bre, na.action = "na.fail"))
+summary(clm(Bold ~ SchoolDistDecay, data = bold.data.pup, na.action = "na.fail"))
+summary(clm(Bold ~ SchoolDistDecay, data = bold.data.dis, na.action = "na.fail"))
+
+```
+
+### ii) Temporal variables associated with boldness
+```{r}
+# BIG question - can I just toss year into a model like this without any special sauce??
+summary(clm(Bold ~ Year_int, data = bold.data.bre, na.action = "na.fail"))
+summary(clm(Bold ~ Year_int, data = bold.data.pup, na.action = "na.fail"))
+summary(clm(Bold ~ Year_int, data = bold.data.dis, na.action = "na.fail"))
+
+
+summary(clm(Bold ~ NightDay, data = bold.data.bre, na.action = "na.fail"))
+summary(clm(Bold ~ NightDay, data = bold.data.pup, na.action = "na.fail"))
+summary(clm(Bold ~ NightDay, data = bold.data.dis, na.action = "na.fail"))
+
+
+
+```
+
+### iii) Contextual variables associated with boldness
+```{r}
+
+
+
+
+```
+
+
+
+
+
+# Question 2: Have coyote boldness or human perceptions changed over the past 10 years of report collection? 
+There are several method
+
+## A) Coyote Boldness from 2012 - 2020
+```{r}
+# making a data frame with the % of reports in each boldness category per coyote season, per year 
+bold.time = Coyotes %>%
+  group_by(fourmonth_total = floor_date(Date, "4 months"), Year, Season, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), # column with total # reports 
+         Season = fct_relevel(Season, c("Breeding", "PupRearing", "Dispersal")), 
+         Year_int = Year - 2011) # change year to integer from 1 to 9 (instead of numeric 2011 - 2020)
+
+# plotting changes in the % of all 5 boldness categories over time  
+bold.time.plot = 
+  ggplot(bold.time, aes(x = fourmonth_total, y = perc,  fill=Season, color = Season))+
+  geom_point() + 
+  geom_bar(position = "dodge", stat = "identity") + # could also do as points, tbd                       
+  stat_smooth(aes(group = 1), method = lm, formula = y~x, color = "grey10", se=FALSE) + 
+  facet_grid(~ Bold)+
+  geom_point() + 
+   #geom_bar(position = "dodge", stat = "identity") + # could al
+  theme_bw()+ 
+  scale_fill_manual(values = c("gold",  "firebrick", "orangered2"))+
+  scale_color_manual(values = c("gold",  "firebrick", "orangered2"))
+
+bold.time.plot  
+
+# Using regression analysis to look for differences over time 
+
+# first, we find the appropriate distribution for our data 
+gamlss::fitDist(count, data=subset(bold.time, Bold == "aggres"), type="counts", try.gamlss=TRUE) # best family = PIG (poisson inverse gaussian)
+gamlss::histDist(subset(bold.time, Bold=="aggres")$count, "PIG", density=T) # visualizing fit
+
+bold.time.aggres = subset(bold.time, Bold=="aggres") # subsetting data to only aggressive reports
+
+# Fitting a full model (all variables of interest) to data 
+bold.time.mod = gamlss::gamlss(count ~  total + Year_int + Season + Year_int*Season,
+                  family = "PIG", data = bold.time.aggres)
+#  model selection to identify the top model(s) using AICc (corrected for small sample sizes)
+bold.time.mod.dredge = MuMIn::dredge(bold.time.mod, rank ="AICc")
+
+# top model = no interaction term
+MuMIn::get.models(bold.time.mod.dredge, subset = delta < 2)
+summary(gamlss::gamlss(count ~  total + Year_int + Season,
+                  family = "PIG", data = bold.time.aggres))
+
+rm(bold.time, bold.time.aggres, bold.time.plot, bold.time.mod, bold.time.mod.dredge)
+
+```
+
+## B) Human Perceptions from 2012 - 2020
+
+```{r}
+perc.time = Coyotes %>%
+  group_by(fourmonth_total = floor_date(Date, "4 months"), Year, Season, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), # column with total # reports 
+         Season = fct_relevel(Season, c("Breeding", "PupRearing", "Dispersal")), 
+         Year_int = Year - 2011) # change year to integer from 1 to 9 (instead of numeric 2011 - 2020)
+
+# plotting changes in the % of all 5 boldness categories over time  
+perc.time.plot = 
+  ggplot(perc.time, aes(x = fourmonth_total, y = perc, fill=Season, color = Season))+
+  geom_point() + 
+  geom_bar(position = "dodge", stat = "identity") + # could also do as points, tbd 
+  stat_smooth(aes(group = 1), method = lm, formula = y~x, color = "grey10", se=FALSE) + 
+  facet_grid(~ HumanPerception) + 
+  theme_bw()+ 
+  scale_fill_manual(values = c("gold",  "firebrick", "orangered2"))+
+  scale_color_manual(values = c("gold",  "firebrick", "orangered2"))
+
+perc.time.plot  
+
+# Using regression analysis to look for differences over time 
+
+# first, we find the appropriate distribution for our data 
+gamlss::fitDist(count, data=subset(perc.time, HumanPerception == "Negative"), type="counts", try.gamlss=TRUE) # best family = 
+gamlss::histDist(subset(perc.time, HumanPerception == "Negative")$count, "DPO", density=T) # BEST FIT FOR DATA
+
+perc.time.neg = subset(perc.time, HumanPerception == "Negative")
+
+# second, we fit the model to the data
+perc.time.mod = gamlss::gamlss(count ~  total + Year_int + Season + Year_int*Season,
+                  family = "DPO", data = perc.time.neg)
+summary(perc.time.mod)
+# third, we do model selection
+perc.time.mod.dredge = MuMIn::dredge(perc.time.mod, rank = "AICc")
+
+# top model = no interaction term
+MuMIn::get.models(perc.time.mod.dredge, subset = delta < 2)
+
+perc.time.mod.avg <- MuMIn::model.avg(perc.time.mod.dredge, subset=delta < 2)
+
+
+summary(perc.time.mod.avg)
+
+rm(perc.time, perc.time.neg, perc.time.plot, perc.time.mod, perc.time.mod.dredge, perc.time.mod.avg)
+
+```
+
+
+
+# Question 3: Which spatial, temporal and contextual variables were associated with any long-term changes in apparent conflict? 
+
+
+
+
