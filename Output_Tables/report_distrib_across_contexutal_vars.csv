@@ -1,0 +1,23 @@
+"","Variable","Categories","Count","perc"
+"1","Human Activity","Cycling",75,0.82110794832494
+"2","Human Activity","Driving",744,8.1453908473834
+"3","Human Activity","HomeYard",1681,18.4037661484563
+"4","Human Activity","OutdoorAct",157,1.71885263849354
+"5","Human Activity","Unknown",4729,51.7735931683819
+"6","Human Activity","Walking",1748,19.1372892489599
+"7","Vulnerable Individual","Cat",173,1.89402233413619
+"8","Vulnerable Individual","Child",441,4.82811473615065
+"9","Vulnerable Individual","Dog",1907,20.8780380994088
+"10","Vulnerable Individual","Multiple",295,3.22969126341143
+"11","Vulnerable Individual","Unknown",6318,69.1701335668929
+"12","Dog Leash Status","Leashed",230,11.7466802860061
+"13","Dog Leash Status","OffLeash",185,9.44841675178754
+"14","Dog Leash Status","Unknown",1543,78.8049029622063
+"15","Number of Coyotes","More",368,4.02890299978104
+"16","Number of Coyotes","One",5428,59.4263192467703
+"17","Number of Coyotes","Three",456,4.99233632581563
+"18","Number of Coyotes","Two",1416,15.5025180643749
+"19","Number of Coyotes","Unknown",1466,16.0499233632582
+"20","Coyote Health","Unknown",7315,80.0853952266258
+"21","Coyote Health","Unhealthy",552,6.04335449967156
+"22","Coyote Health","Healthy",1267,13.8712502737026
