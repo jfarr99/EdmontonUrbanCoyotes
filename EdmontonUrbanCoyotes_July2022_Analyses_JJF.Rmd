@@ -1,0 +1,2806 @@
+---
+title: "Coyote_Project_Feb52022"
+author: "Jonathan Farr"
+date: "2/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+Loading in libraries
+```{r, echo=FALSE}
+library(ordinal) # ordinal regressions 
+library(tidyverse) # data manipulation 
+library(gridExtra) # multipanel plots
+library(Hmisc) # correlation coefficients
+library(lubridate) # dealing with dates
+library(viridis)
+library(corrplot) # for visualizing chi square residuals
+library(chisq.posthoc.test) 
+library(cowplot)
+library(ggprism)
+library(MuMIn) # model selection 
+
+library(raster) # reading in raster files
+library(sf) # for reading in shapefiles 
+
+```
+
+
+## Reading in Coyote Points
+```{r}
+# read in coyotes as sf object
+Coyotes.sf= st_transform(st_as_sf(x = read.csv("UrbanCoyotes_March3_2022.csv"), 
+                                  coords = c("Long", "Lat"),
+                                  crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" ), # read in as WGS84
+           crs="+proj=utm +zone=12 +datum=NAD83 +units=m +no_defs ") # transform to NAD83
+
+```
+
+## Reading in Spatial Data and adding to points
+With each line of code we are: 
+a) reading in a raster from a specific folder
+b) dividing the values in that raster by the max # cells in a buffer zone to generate proportions
+c) using the extract function to assign those raster values to points in Coyotes.sf
+d) adding these points to the correct data frame as a new column 
+```{r}
+Coyotes = data.frame(x = c(1:9134))
+                
+# LAND COVER 100M BUFFER
+Coyotes$Com100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Com100m.tif")/317, Coyotes.sf)
+Coyotes$Res100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Res100m.tif")/317, Coyotes.sf)
+Coyotes$Mod100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Mod100m.tif")/317, Coyotes.sf)
+Coyotes$Mow100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Mow100m.tif")/317, Coyotes.sf)
+Coyotes$Water100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Water100m.tif")/317, Coyotes.sf)
+Coyotes$Nat100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Nat100m.tif")/317, Coyotes.sf)
+Coyotes$Build100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Build100m.tif")/317, Coyotes.sf)
+Coyotes$Roads100m = raster::extract(raster("Data/GIS_Layers/LandCover100m/Roads100m.tif")/317, Coyotes.sf)
+
+# LAND COVER 200M BUFFER
+Coyotes$Com200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Com200m.tif")/1257, Coyotes.sf)
+Coyotes$Res200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Res200m.tif")/1257, Coyotes.sf)
+Coyotes$Mod200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Mod200m.tif")/1257, Coyotes.sf)
+Coyotes$Mow200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Mow200m.tif")/1257, Coyotes.sf)
+Coyotes$Water200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Water200m.tif")/1257, Coyotes.sf)
+Coyotes$Nat200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Nat200m.tif")/1257, Coyotes.sf)
+Coyotes$Build200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Build200m.tif")/1257, Coyotes.sf)
+Coyotes$Roads200m = raster::extract(raster("Data/GIS_Layers/LandCover200m/Roads200m.tif")/1257, Coyotes.sf)
+
+# LAND COVER 400M BUFFER
+Coyotes$Com400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Com400m.tif")/5025, Coyotes.sf)
+Coyotes$Res400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Res400m.tif")/5025, Coyotes.sf)
+Coyotes$Mod400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Mod400m.tif")/5025, Coyotes.sf)
+Coyotes$Mow400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Mow400m.tif")/5025, Coyotes.sf)
+Coyotes$Water400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Water400m.tif")/5025, Coyotes.sf)
+Coyotes$Nat400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Nat400m.tif")/5025, Coyotes.sf)
+Coyotes$Build400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Build400m.tif")/5025, Coyotes.sf)
+Coyotes$Roads400m = raster::extract(raster("Data/GIS_Layers/LandCover400m/Roads400m.tif")/5025, Coyotes.sf)
+
+# LAND COVER 800M BUFFER
+Coyotes$Com800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Com800m.tif")/20081, Coyotes.sf)
+Coyotes$Res800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Res800m.tif")/20081, Coyotes.sf)
+Coyotes$Mod800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Mod800m.tif")/20081, Coyotes.sf)
+Coyotes$Mow800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Mow800m.tif")/20081, Coyotes.sf)
+Coyotes$Water800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Water800m.tif")/20081, Coyotes.sf)
+Coyotes$Nat800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Nat800m.tif")/20081, Coyotes.sf)
+Coyotes$Build800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Build800m.tif")/20081, Coyotes.sf)
+Coyotes$Roads800m = raster::extract(raster("Data/GIS_Layers/LandCover800m/Roads800m.tif")/20081, Coyotes.sf)
+
+# LAND COVER 1600M BUFFER
+Coyotes$Com1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Com1600m.tif")/80425, Coyotes.sf)
+Coyotes$Res1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Res1600m.tif")/80425, Coyotes.sf)
+Coyotes$Mod1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Mod1600m.tif")/80425, Coyotes.sf)
+Coyotes$Mow1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Mow1600m.tif")/80425, Coyotes.sf)
+Coyotes$Water1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Water1600m.tif")/80425, Coyotes.sf)
+Coyotes$Nat1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Nat1600m.tif")/80425, Coyotes.sf)
+Coyotes$Build1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Build1600m.tif")/80425, Coyotes.sf)
+Coyotes$Roads1600m = raster::extract(raster("Data/GIS_Layers/LandCover1600m/Roads1600m.tif")/80425, Coyotes.sf)
+
+
+Coyotes[is.na(Coyotes)] = 0 # raplacing all NAs with 0 
+
+# Cleaning up the environment
+Coyote_Data = cbind(Coyotes, as.data.frame(Coyotes.sf))
+
+rm(Coyotes, Coyotes.sf)
+```
+
+## Cleaning Coyote Data
+We removed all reports prior to 2012, because of small sample sizes in 2010 (N=15) and 2011 (N = 112). We also binned the variable "CoyoteResponse" into 5 categories (instead of 10): Unknown (unk), Sightings (sight), Avoidance (avoid), Indifferent (indiff) and Aggressive (aggres) based on coyote boldness. 
+```{r}
+
+# cleaning all the data
+Coyotes = Coyote_Data %>% 
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>% # formatting data properly
+  filter(Date >= "2012-1-1") %>% # removing reports before Jan 1 2012
+   mutate(CoyoteResponse = ifelse(CoyoteResponse =="Unknown" & Type =="Sighting", "0", CoyoteResponse), 
+          # if sighting = true and response = unknown then lets call it a sighting rather than an unknown 
+     Bold = fct_collapse(CoyoteResponse, Unknown = "Unknown", Sighting = "0", Avoidance = c("1", "2"), # binning boldness
+                                     Indifferent = c("3", "4", "5"), Bold = c("6", "7"), Aggressive=c("8", "9")), 
+         Bold= as.ordered(Bold), #making boldness an ordered factor
+         Bold= fct_relevel(Bold, c("Unknown", "Sighting", "Avoidance", "Indifferent", "Bold", "Aggressive")), # boldness = increasing order
+         CoyoteResponse = as.ordered(CoyoteResponse),
+         Year_int = Year - 2011,
+         Act = fct_relevel(HumanActivity, c("Unknown", "Walking", "Cycling", "Driving", "OutdoorAct", "HomeYard")), 
+         Vul = fct_relevel(VulnerableIndividual, c("Unknown", "Child", "Dog", "Cat", "Multiple")), 
+         Num = fct_relevel(CoyoteNumber, c("Unknown", "One", "Two", "Three", "More")), 
+         Health = fct_relevel(Health, c("Unknown", "Unhealthy", "Healthy")), 
+         RoadDistDecay = exp(-0.002*RoadDist))
+
+# adding a variable with assigned habitat type, based on the habitat with the greaters % cover within 200m
+Coyotes$Habitat  = as.factor(colnames(Coyotes[,c("Mod100m", "Res100m", "Mow100m", "Nat100m", "Com100m")])[apply(Coyotes[,c("Mod100m", "Res100m", "Mow100m", "Nat100m", "Com100m")],1,which.max)])
+
+rm(Coyote_Data)
+```
+
+# Main Figures & Tables
+
+## Figure 1. Spatial patterns in coyote reports
+
+Examining the distribution of points across land cover types. Points were assigned discrete types based on the land cover class that made up the majority of the area within a 100m buffer of that point. Expected values were calculated based on the area of the land cover type within the study area. 
+```{r}
+# reports across habitat types
+hab.observed = Coyotes %>%
+  group_by(Habitat) %>%
+  summarise(count=n()) %>%
+  mutate(var = "Observed", 
+         perc = count, 
+         percentages = count/sum(count))
+
+# empty data frame for adding expected avlues
+hab.expected = Coyotes %>% group_by(Habitat) %>%
+  summarise(count=n()) %>%
+  mutate(perc = "none", var = "Expected", percentages = NA)
+
+#
+
+      # calculating expected percentages of reports, based on the area of that habitat type divided by the total area of the study area (minus water, which we are not considering in this analysis)
+      hab.expected$perc = ifelse(hab.expected$Habitat =="Com100m", 146.7/556*9134, hab.expected$perc) # 146.7km square of commercial area within study MCP 
+      hab.expected$perc = ifelse(hab.expected$Habitat =="Mod100m", 83.8/556*9134, hab.expected$perc) # 83.8 square of modified open area within study MCP 
+      hab.expected$perc = ifelse(hab.expected$Habitat =="Mow100m", 43.6/556*9134, hab.expected$perc ) # 43.6 square of mowed area within study MCP 
+      hab.expected$perc = ifelse(hab.expected$Habitat =="Nat100m", 44.9/556*9134, hab.expected$perc ) # 44.9  square of natural area within study MCP 
+      hab.expected$perc = ifelse(hab.expected$Habitat =="Res100m", 236.5/556*9134, hab.expected$perc ) # 236.5km square of residential area within study MCP 
+
+# Joining together the two data frames
+hab.totals = rbind(hab.observed, hab.expected) %>%
+  mutate(var = fct_relevel(var, c("Observed", "Expected")), 
+         perc = as.numeric(perc), 
+         Habitat = recode(Habitat, Com100m ="Commercial", Mod100m = "Modified Open", Mow100m = "Mowed", Nat100m = "Natural",
+                          Res100m = "Residential"))
+
+hab.totals$Habitat = fct_relevel(hab.totals$Habitat, c("Natural", "Modified Open", "Mowed", "Residential", "Commercial"))
+
+table.hab = matrix(c(1016, 614, 111, 997, 5456,
+                     2419, 1377, 716, 738, 3885), ncol = 2)
+colnames(table.hab) =c( "observed", "expected")
+rownames(table.hab) = c( "com", "mod", "mow", "nat", "res")
+
+hab.chsq = chisq.test(table.hab) # chi square test comparing observed and expected distribution of reports across habitat types
+
+hab.chsq.resids = chisq.posthoc.test(table.hab, method = "holm") # run a posthoc test
+
+
+# plotting 
+hab.plot = 
+  ggplot(hab.totals, aes(x=var, y= perc, fill = Habitat)) + 
+  geom_col(color="black") + 
+  theme_bw()+
+  scale_fill_manual("Land Cover", values = c("chartreuse3", "cyan4", "skyblue2", "darkorchid3", "navy")) +
+  ylab("Number of reports")+ 
+  scale_y_continuous(expand = c(0.01, 0.01), guide = guide_prism_minor(), breaks = seq(0,9150, 1500)) +
+  theme(axis.text.x = element_text(size = 15), 
+        axis.text.y=element_text(size = 15), axis.title.x = element_blank(),
+        legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y= element_text(size = 20),
+        legend.position = "none") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0))
+
+save_plot("Figures/MS_Figs/Habitat.reporting.patterns.jpg", hab.plot, base_width = 3.2, base_height= 8)
+
+rm(hab.expected, hab.totals, hab.observed, hab.plot, table.hab, hab.chsq, hab.chsq.resids)
+
+```
+
+## Figure 2. Temporal patterns in coyote reports 
+Reports over years - distribution divided into 4 month periods aligning with biological coyote seasons
+```{r}
+reporting.years = Coyotes %>%
+  group_by(Time = floor_date(Date, "4 months"), Season) %>%
+  summarise(count = n())
+
+reporting.years$Season = fct_relevel(reporting.years$Season, c("Breeding", "PupRearing", "Dispersal"))
+reporting.years$Season = recode(reporting.years$Season, PupRearing = "Pup Rearing")
+
+reporting.years.plot = 
+  ggplot(reporting.years, aes(x=Time, y= count, fill=Season)) + 
+  geom_bar(position="dodge", stat="identity", color="black") + 
+  theme_bw()+
+  ylab("Number of reports")+ xlab("Year")+
+  scale_fill_viridis(discrete = TRUE)+
+ # scale_fill_manual(values = c("chartreuse3",  "skyblue2",  "navy")) +
+  scale_y_continuous(expand = c(0.01,0.01), guide = guide_prism_minor()) +   
+  scale_x_date(date_labels = "%Y", 
+               breaks=as.Date(c("2012-05-01", "2013-05-01","2014-05-01","2015-05-01", "2016-05-01", 
+                                "2017-05-01","2018-05-01","2019-05-01", "2020-05-01","2021-05-01")), expand = c(0.01,0.01)) +
+  theme(axis.title = element_text(size = 20), axis.text.x = element_text(size = 15), 
+        axis.text.y = element_text(size = 15), 
+        legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(0.5, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "top") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+
+rm(reporting.years)
+```
+
+Reports split into months - percentage values show % reports per month 
+```{r}
+reporting.months = Coyotes %>%
+  group_by(Month, Season) %>%
+  summarise(count = n()) %>%
+  mutate(Month = as.factor(Month)) %>%
+  mutate(Month = recode(Month, '1'="Jan", '2'="Feb", '3'="Mar", '4'="Apr", '5'="May", '6'="Jun", '7'="Jul", '8'="Aug", '9'="Sep", '10'="Oct", '11'="Nov", '12'="Dec"))
+
+reporting.months$Season = fct_relevel(reporting.months$Season, c("Breeding", "PupRearing", "Dispersal"))
+reporting.months$Season = recode(reporting.months$Season, PupRearing = "Pup Rearing")
+
+
+reporting.months$percentage = reporting.months$count/sum(reporting.months$count)*100
+
+reporting.month.plot = 
+  ggplot(reporting.months, aes(x=Month, y= percentage, fill=Season)) + 
+  geom_bar(position="dodge", stat="identity", color="black") + 
+  theme_bw()+
+  ylab("Percentage of Reports") + geom_vline(xintercept= c(4.5,8.5), linetype = 2)+
+  geom_text(label = "Breeding", x=2.5, y = 17.2, size = 6, color="grey30")+
+  geom_text(label = "Pup Rearing", x=6.55, y = 17.2, size = 6, color="grey30")+
+  geom_text(label = "Dispersal", x=10.5, y = 17.2, size = 6, color="grey30")+
+  scale_fill_viridis(discrete = TRUE) +
+  scale_y_continuous(expand = c(0.01, 0.01), lim = c(0,18,5), guide = guide_prism_minor()) +  
+  theme(axis.title = element_text(size = 20), axis.text.y = element_text(size = 15),
+        axis.text.x = element_text(size = 15), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        legend.position = "none")
+
+
+rm(reporting.months)
+```
+
+Reports diurnally - see methods for night and day classification details
+```{r}
+reporting.diurnal = Coyotes %>%
+  group_by(NightDay) %>%
+  summarise(count = n()) %>%
+  mutate(var = "Time of Day")
+
+reporting.diurnal.plot = 
+  ggplot(reporting.diurnal, aes(x=NightDay, y = count, fill=NightDay)) + 
+  geom_col( color="black") + 
+  theme_bw()+
+  ylab("Number of reports")+ xlab("Time of Day") + 
+  scale_fill_manual(values = c("skyblue2",  "navy",  "chartreuse3")) +
+  scale_y_continuous(expand = c(0.01, 0.01), guide = guide_prism_minor()) +  
+  theme(axis.title = element_text(size = 20), axis.text = element_text(size = 15), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "none") 
+
+remove(reporting.diurnal)
+```
+
+Making a plot with all 3 of these temporal factors together: 
+```{r}
+reporting.patterns = 
+  ggdraw()+
+  draw_plot(reporting.diurnal.plot, x= .7, y = 0, width =.3, height =0.9) + draw_plot_label(label = "C.", x=0.68, y=0.95, size = 30)+
+  draw_plot(reporting.years.plot, x= 0.03, y = 0.5, width =.65, height =.5) + draw_plot_label(label = "A.", x=-0, y=0.95, size = 30)+
+  draw_plot(reporting.month.plot, x= 0.03, y = 0, width =.65, height =.5) + draw_plot_label(label = "B.", x=0, y=0.55, size = 30)
+
+
+save_plot("Figures/MS_Figs/Temporal.reporting.patterns.jpg", reporting.patterns, base_width = 12, base_height= 8)
+
+
+rm(reporting.diurnal.plot, reporting.years.plot, reporting.month.plot, reporting.patterns)
+```
+
+## Figure 3. Contextual Patterns in Coyote Reports
+
+Looking at the number of reports classified into each of the contextual variables (human activity, vulnerable individuals, dog leash status, coyote # and coyote healt)
+```{r}
+# HUMAN ACTIVITY
+act.reports = Coyotes %>%
+  group_by(HumanActivity) %>% 
+  summarise(Count=n()) %>%
+  mutate(Variable = "Human Activity", 
+         perc = Count/sum(Count)*100,
+         HumanActivity = as.ordered(HumanActivity), 
+         Categories = HumanActivity) %>%
+  mutate(Categories = fct_relevel(Categories, "Unknown", "HomeYard", "Driving", "Cycling", "OutdoorAct", "Walking"), 
+         Categories = recode(Categories, HomeYard = 'Home/Yard', OutdoorAct = 'Outdoor Activity')) %>% filter(HumanActivity !="Unknown")%>%
+    dplyr::select(c(Variable, Categories, Count, perc))
+
+# VULNERABLE INDIVIDUALS
+vul.reports = Coyotes %>%
+  group_by(VulnerableIndividual) %>%
+  summarise(Count=n()) %>%
+  mutate(Variable = "Vulnerable Individual",         
+         perc = Count/sum(Count)*100,
+         VulnerableIndividual = as.ordered(VulnerableIndividual)) %>%
+  mutate(VulnerableIndividual = fct_relevel(VulnerableIndividual,  c("Unknown", "Multiple", "Child", "Dog", "Cat")), 
+         Categories = VulnerableIndividual) %>% filter(VulnerableIndividual !="Unknown")%>%
+  dplyr::select(c(Variable, Categories, Count, perc))
+
+#  Dog leash status
+leash.reports = Coyotes %>% filter(DogPresent !="HomeYard") %>% filter(VulnerableIndividual =="Dog"| VulnerableIndividual =="Multiple")%>%
+  group_by(DogPresent) %>% 
+  summarise(Count=n()) %>%
+  mutate(Variable = "Dog Leash Status",
+         perc = Count/sum(Count)*100,
+         Categories = DogPresent,
+  Categories = fct_relevel(Categories, "Unknown", "OffLeash", "Leashed"), 
+  Categories = recode(Categories, OffLeash = "Off-Leash")) %>% filter(DogPresent !="Unknown")%>%
+  dplyr::select(c(Variable, Categories, Count, perc))
+
+# Number of coyotes
+num.reports = Coyotes %>%
+  group_by(CoyoteNumber) %>% 
+  summarise(Count=n()) %>%
+  mutate(Variable = "Number of Coyotes", 
+         perc = Count/sum(Count)*100,
+         CoyoteNumber = as.ordered(CoyoteNumber)) %>%
+  mutate(Categories = CoyoteNumber, 
+         Categories = fct_relevel(Categories,  c("Unknown", "More", "Three", "Two", "One"))) %>% filter(CoyoteNumber !="Unknown")%>%
+    dplyr::select(c(Variable, Categories, Count, perc))
+
+# Coyote health
+health.reports = Coyotes %>%
+  group_by(Health) %>%
+  summarise(Count=n()) %>%
+  mutate(Variable = "Coyote Health") %>%
+  mutate(Categories = Health, 
+         perc = Count/sum(Count)*100,
+         Categories = as.factor(Categories)) %>%
+  mutate(Categories = fct_relevel(Categories, c("Unknown", "Unhealthy","Healthy"))) %>% filter(Health !="Unknown")%>%
+    dplyr::select(c(Variable, Categories, Count, perc))
+
+
+context.reports = rbind(act.reports, vul.reports, leash.reports, num.reports, health.reports)
+
+context.reports$Variable = fct_relevel(context.reports$Variable, c("Human Activity", "Vulnerable Individual", "Dog Leash Status", "Number of Coyotes", "Coyote Health"))
+  
+context.plot.trends = 
+ggplot(context.reports, aes(y=Categories, x=perc, fill = Variable)) + 
+  geom_bar(stat="identity", position="dodge", color = "black") +
+  scale_fill_viridis(discrete = TRUE)+
+  geom_text(aes(x=-10, y = Categories, label = Count), hjust = 0.5)+
+  geom_text(aes(x=-40, y = Categories, label = Categories), hjust =0.5)+
+  xlab("Percentage of Reports")+ ylab(NULL)+
+  scale_x_continuous(expand =c(0.4,0), breaks = seq(0,100, 20), guide = guide_prism_minor(), position = "top")+
+  theme_classic()+
+  theme(legend.position="none", axis.text.x= element_text(hjust = 0.5),
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(), axis.line.y=element_blank(), axis.title.y=element_blank())+
+  facet_grid(Variable~., scale ="free_y", space="free_y")
+
+save_plot("Figures/MS_Figs/distribution_of_reports_across_contextual_vars.jpeg", context.plot.trends, base_width = 6, base_height= 6)
+
+write.csv(context.reports,"Output_Tables/report_distrib_across_contexutal_vars.csv") # write that csv!
+
+
+rm(act.reports, vul.reports, leash.reports, num.reports, health.reports, context.plot.trends, context.reports)
+
+```
+
+## Table 2. Reports within each of the coyote boldness
+```{r}
+# writing the output table with percentages
+Coyotes %>% 
+  group_by(CoyoteResponse) %>%
+  summarise(count=n()) %>%
+  mutate(var = "Coyote Boldness", 
+         perc = count/sum(count)*100) %>% 
+  write.csv("Output_Tables/percentage_reports_in_boldness_categories.csv")
+
+## number of cat depredations
+nrow(Coyotes%>%filter(VulnerableIndividual == "Unknown", CoyoteResponse =="9"))
+
+
+```
+
+## Table 3. Reports within each of the human concern categories 
+```{r}
+# writing the output table with percentages
+Coyotes %>%  
+  group_by(HumanPerception) %>%
+  summarise(count=n()) %>%
+  mutate(var = "Human Concern", 
+         perc = count/sum(count)*100) %>% 
+    write.csv("Output_Tables/percentage_reports_in_concern_categories.csv")
+
+```
+
+## Figure 4. Relationship between coyote boldness and human concern
+
+Relationship between coyote boldness and human concern as indicated by pearson's residuals
+```{r}
+
+bold.per.table = table(Coyotes$HumanPerception, Coyotes$Bold) # make a table
+bold.per.chsq = chisq.test(bold.per.table[2:4,3:6]) # run a chi square test
+bold.per.chsq # not surprisingly the X2 test was significant
+
+bold.per.chsq.resids = chisq.posthoc.test(bold.per.table[2:4,3:6], method = "holm") # run a posthoc test
+
+# formatting a new data frame
+bold.per.chsq.resids.long = pivot_longer(bold.per.chsq.resids, cols = c(Avoidance, Indifferent, Bold, Aggressive))
+bold.per.chsq.resids.long = data.frame(HumanConcern = subset(bold.per.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Bold =  subset(bold.per.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.per.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.per.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+        HumanConcern = fct_relevel(HumanConcern,  "Positive", "Neutral", "Negative"),
+        Bold = fct_relevel(Bold,  "Avoidance", "Indifferent", "Bold", "Aggressive")) 
+
+# plotting!
+bold.per.chsq.plot=
+ggplot(bold.per.chsq.resids.long, aes(x = HumanConcern, y = Bold, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="white") + 
+  scale_fill_distiller("Pearson's Residuals",palette = "RdYlBu", na.value = "grey80", 
+                       limits =c(-5,5), breaks = c(-5,0,5), labels = c(-5, 0, 5), direction=-1)+ 
+  ylab("Coyote Boldness") + xlab("Human Concern") + 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "right", legend.title = element_blank(), 
+        legend.text = element_text(size = 14),
+        axis.text.x = element_text(size = 18), axis.title= element_text(size = 20),
+        axis.text.y = element_text(size = 18))
+
+bold.concern.plot = 
+  ggdraw()+
+  draw_plot(bold.per.chsq.plot, x= 0, y = 0, height =1, width =.9)+
+  draw_plot_label(label = "Pearson's Residuals", x=0.93, y=0.3, size =16, color ="black",  fontface = "plain",
+ angle = 90, hjust = 0, vjust = 0)
+
+    save_plot("Figures/MS_Figs/correlation.between.bold.concern.jpeg", bold.concern.plot, base_width = 6.5, base_height= 4)
+
+    rm(bold.per.chsq.plot, bold.per.table, bold.per.chsq,bold.per.chsq.resids, bold.per.chsq.resids.long, bold.concern.plot)
+```
+
+## Figure 5. Ordinal Regression top model outputs displayed in graphical format
+
+### Coyote Boldness - Ordinal Regression Modelling
+
+First, making a data frame with appropriate reports - excluding all reports that are sightings.
+```{r}
+bold.data = Coyotes %>%
+  filter(Bold != "Unknown", Bold != "Sighting")
+# consider also removing reports of cat depredations and reports where reporters are driving
+
+str(bold.data)
+```
+
+Second, transform our compositional land cover variables using a centered log-ratio transformation 
+```{r}
+bold.data.trans = bold.data
+
+# for 100m buffer size
+bold.data.trans[,c("Mod100m", "Mow100m", "Nat100m", "Water100m", "Com100m", "Res100m")] = compositions::clr(bold.data.trans[,c("Mod100m", "Mow100m", "Nat100m", "Water100m", "Com100m", "Res100m")]+1)
+
+# for 200m buffer size 
+bold.data.trans[,c("Mod200m", "Mow200m", "Nat200m", "Water200m", "Com200m", "Res200m")] = compositions::clr(bold.data.trans[,c("Mod200m", "Mow200m", "Nat200m", "Water200m", "Com200m", "Res200m")]+1)
+
+# for 400m buffer size
+bold.data.trans[,c("Mod400m", "Mow400m", "Nat400m", "Water400m", "Com400m", "Res400m")] = compositions::clr(bold.data.trans[,c("Mod400m", "Mow400m", "Nat400m", "Water400m", "Com400m", "Res400m")]+1)
+
+# for 800m buffer size
+bold.data.trans[,c("Mod800m", "Mow800m", "Nat800m", "Water800m", "Com800m", "Res800m")] = compositions::clr(bold.data.trans[,c("Mod800m", "Mow800m", "Nat800m", "Water800m", "Com800m", "Res800m")]+1)
+
+# for 1600m buffer size
+bold.data.trans[,c("Mod1600m", "Mow1600m", "Nat1600m", "Water1600m", "Com1600m", "Res1600m")] = compositions::clr(bold.data.trans[,c("Mod1600m", "Mow1600m", "Nat1600m", "Water1600m", "Com1600m", "Res1600m")]+1)
+
+rm(bold.data)
+```
+
+#### (Appendix 3 Table A3.2) Third, we select the best-fit scale using univariate ordinal regressions. Based on the AIC values of univariate models, the best scales are Build200m, Res100m, Mod400m, Nat100m, Mow100m, Com200m
+```{r}
+bold.scale_models <- list()
+
+for(i in c(1:5)){ # For each of your five scales (100, 200, 400, 800, 1600)
+  # Define the variables you want to test.
+  if(i==1){scales <- c("Mod100m", "Mow100m", "Nat100m", "Com100m", "Res100m", "Build100m", "RoadDistDecay")}
+  if(i==2){scales <- c("Mod200m", "Mow200m", "Nat200m", "Com200m", "Res200m", "Build200m")}
+  if(i==3){scales <- c("Mod400m", "Mow400m", "Nat400m", "Com400m", "Res400m", "Build400m")}
+  if(i==4){scales <- c("Mod800m", "Mow800m", "Nat800m", "Com800m", "Res800m", "Build800m")}
+  if(i==5){scales <- c("Mod1600m", "Mow1600m", "Nat1600m", "Com1600m", "Res1600m", "Build1600m")}
+  
+  
+  # Create a data frame to store the results from all the models.
+  bold.scale_models[[i]] <- data.frame()
+  
+  # For every variable you want to test:
+  for(j in c(scales)){
+    
+    model <- clm(Bold ~ bold.data.trans[,j], # Create the predictive model
+                  data=bold.data.trans)
+    
+    null <- clm(Bold ~ 1, # Create the null model
+                  data=bold.data.trans)
+    
+    bold.scale_models[[i]][j,1] <- j # First column is the predictor
+    bold.scale_models[[i]][j,2] <- AIC(model) # Second column is AIC
+    bold.scale_models[[i]][j,3] <-  AIC(model) - AIC(null) # Second column is delta AIC from null mod
+
+
+
+  }
+  
+  colnames(bold.scale_models[[i]]) <- c("predictor", "AIC", "deltaAIC")
+  rm(model, scales) # Keep workspace clean
+}
+
+bold.scale.model.outputs <- dplyr::bind_rows(bold.scale_models)
+
+write.csv(bold.scale.model.outputs, "Output_Tables/coyote_boldness_univariate_scale_mods.csv") # write csv 
+
+
+rm(bold.scale_models, bold.scale.model.outputs, null, i, j)
+
+```
+
+#### (Appendix 3 Table A3.3) Fourth, we evaluate correlations between our variables using R-squared tests. Strong correlations between building density/road dist decay and Res100m. So, because res100m has the bigger (worst) AIC value, we remove it from analyses going forward. We also write a .csv file with corr output. 
+```{r}
+bold.correlations = Hmisc::rcorr(as.matrix(bold.data.trans[,c("RoadDistDecay", "Mod400m", "Nat100m", "Mow100m", "Build200m", "Com200m", "Res100m")]), type = c("spearman"))
+
+write.csv(bold.correlations$r, "Output_Tables/bold_correlation_coefficients.csv")
+
+rm(bold.correlations)
+```
+
+Finally, we construct full models and select the most parsimonious models using AIC 
+```{r}
+# First, we scale and center all variables, also renaming them for ease of interpretation and plotting. 
+bold.data.modelling = bold.data.trans %>%
+  mutate(Road_Distance_Decay = scale(RoadDistDecay, scale= TRUE, center = TRUE),
+         Natural = scale(Nat100m, center = TRUE, scale = TRUE),
+         Modified_Open = scale(Mod400m, center = TRUE, scale = TRUE),
+         Mowed = scale(Mow100m, center = TRUE, scale = TRUE),
+         Commercial =  scale(Com200m, center = TRUE, scale = TRUE),
+         Building_Density = scale(Build200m, center = TRUE, scale = TRUE),
+         Year = scale(Year_int, scale = TRUE, center = TRUE))
+
+str(bold.data.modelling)
+
+bold.model.null = clm(Bold ~ 1, data = bold.data.modelling) # Null model (for calculating AIC differ)
+
+# first, construct model without year
+# global model includes interactions EXCEPT interactions between commercial and anything 
+bold.model = clm(Bold ~ Road_Distance_Decay + Natural + Modified_Open + Mowed + Commercial + Building_Density + Season + 
+                        Natural*Season + Modified_Open*Season  +
+                          Year + 
+                          Road_Distance_Decay*Year + Natural*Year + Modified_Open*Year + Mowed*Year + Building_Density*Year + Year*Commercial, 
+                      data = bold.data.modelling, na.action = "na.fail")
+
+AIC(bold.model)- AIC(bold.model.null)
+
+bold.model.dredge = dredge(bold.model) # dredging base models to get top base models 
+
+bold.models.list = get.models(bold.model.dredge, subset = delta < 2) # get the list of top global models
+
+
+# putting together a data frame with the outputs of all the top models 
+list_for_model_coeffs <- list()
+
+for(i in c(1:length(bold.models.list))){ # For every model in your list of models...
+   
+list_for_model_coeffs[[i]] <- data.frame( 
+    conf_2.5 = confint(bold.models.list[[i]], level=0.95)[,1], # getting 2.5% confint
+    odds = coef(bold.models.list[[i]])[-c(1:3)], # getting coefficient
+    conf_97.5 = confint(bold.models.list[[i]], level=0.95)[,2], # getting 97.5 confint
+    variable = names(coef(bold.models.list[[i]]))[-c(1:3)], # getting the variable name
+    AIC = as.factor(AIC(bold.models.list[[i]]))) # aic for model 
+
+}
+
+mod.outputs.bold = dplyr::bind_rows(list_for_model_coeffs)
+
+
+rm(bold.models.list, bold.data.trans, bold.model.null, list_for_model_coeffs)
+```
+
+#### (Appendix 3 Table A3.6) Writing a CSV with coefficients, confidence intervals (95%), AIC, deltaAIC, weights, and k for each of the models that made it within 2 AIC points of the top model
+```{r}
+mod.outputs.bold %>%
+  mutate(coef_confint = paste(round(odds, 2), # combining coefficients and confidence intervals into one column 
+                              paste(gsub(" ", "", paste("(",round(conf_2.5, 2))), ",",gsub(" ", "", paste(round(conf_97.5,2), ")"))))) %>%
+  pivot_wider(id_col=AIC, names_from=variable, values_from = coef_confint) %>%
+  mutate(delta = round(bold.model.dredge[1:12,]$delta, 2),# add # parameters to model 
+         k =bold.model.dredge[1:12,]$df, # add delta AIC to model
+         weight = round(bold.model.dredge[1:12,]$weight, 2)) %>% # add AIC weights to model 
+  write.csv("Output_Tables/coyote_boldness_regression_outputs.csv") # write csv with model outputs for all top models
+
+rm(bold.model.dredge)
+```
+
+#### (Appendix 3 Figure A3.1) Exploring the interaction term between season and modified open habitat using the effects::package
+```{r}
+# exploring interaction between mod and season 
+bold.model.polr = MASS::polr(Bold ~ Road_Distance_Decay + Natural + Modified_Open + Mowed + Commercial + Building_Density + Season +  Natural*Season + Modified_Open*Season  +  Year + Road_Distance_Decay*Year + Natural*Year + Modified_Open*Year + Mowed*Year + Building_Density*Year + Year*Commercial, data = bold.data.modelling, na.action = "na.fail")
+
+# confirm that polr and clm qualitatively produce the same results - they do! So we're good to compare
+summary(bold.model)
+summary(bold.model.polr)
+
+# generate effects plot
+bold.effect.plot= plot(effects::Effect(focal.predictors=c("Season", "Modified_Open"), bold.model.polr), rug = FALSE)
+
+# effects plot was edited in ppt to for clarity and saved as "boldness.interaction.plot.jpeg"
+
+rm(bold.data.modelling, bold.model, bold.effect.plot, bold.model.polr)
+```
+
+
+### Human Concern - Ordinal Regression Modelling
+
+First, making a data frame with appropriate reports - excluding all reports that have no human perceptions mentioned.
+```{r}
+perc.data = Coyotes %>%
+  filter(HumanPerception != "Unknown", HumanPerception != "Concern")%>%
+  mutate(HumanPerception = as.ordered(HumanPerception), 
+         HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+```
+
+Second, transform our compositional land cover variables using a centered log-ratio transformation 
+```{r}
+perc.data.trans = perc.data
+
+# for 100m buffer size
+perc.data.trans[,c("Mod100m", "Mow100m", "Nat100m", "Water100m", "Com100m", "Res100m")] = compositions::clr(perc.data.trans[,c("Mod100m", "Mow100m", "Nat100m", "Water100m", "Com100m", "Res100m")]+1)
+
+# for 200m buffer size 
+perc.data.trans[,c("Mod200m", "Mow200m", "Nat200m", "Water200m", "Com200m", "Res200m")] = compositions::clr(perc.data.trans[,c("Mod200m", "Mow200m", "Nat200m", "Water200m", "Com200m", "Res200m")]+1)
+
+# for 400m buffer size
+perc.data.trans[,c("Mod400m", "Mow400m", "Nat400m", "Water400m", "Com400m", "Res400m")] = compositions::clr(perc.data.trans[,c("Mod400m", "Mow400m", "Nat400m", "Water400m", "Com400m", "Res400m")]+1)
+
+# for 800m buffer size
+perc.data.trans[,c("Mod800m", "Mow800m", "Nat800m", "Water800m", "Com800m", "Res800m")] = compositions::clr(perc.data.trans[,c("Mod800m", "Mow800m", "Nat800m", "Water800m", "Com800m", "Res800m")]+1)
+
+# for 1600m buffer size
+perc.data.trans[,c("Mod1600m", "Mow1600m", "Nat1600m", "Water1600m", "Com1600m", "Res1600m")] = compositions::clr(perc.data.trans[,c("Mod1600m", "Mow1600m", "Nat1600m", "Water1600m", "Com1600m", "Res1600m")]+1)
+
+rm(perc.data)
+```
+
+#### (Appendix 3 Table A3.2) Third, we select the best-fit scale using univariate ordinal regressions. Based on the AIC values of univariate models, the best scales are Res800m, Mod1600m, Nat1600m, Com100m, Mow800m. We removed RoadDistDecay and Building density as their AIC values were worse than the null model
+```{r}
+
+perc.scale.models <- list()
+
+for(i in c(1:5)){ # For each of your five scales (100, 200, 400, 800, 1600)
+  # Define the variables you want to test.
+  if(i==1){scales <- c("Mod100m", "Mow100m", "Nat100m", "Com100m", "Res100m", "Build100m", "RoadDistDecay")}
+  if(i==2){scales <- c("Mod200m", "Mow200m", "Nat200m", "Com200m", "Res200m", "Build200m")}
+  if(i==3){scales <- c("Mod400m", "Mow400m", "Nat400m", "Com400m", "Res400m", "Build400m")}
+  if(i==4){scales <- c("Mod800m", "Mow800m", "Nat800m", "Com800m", "Res800m", "Build800m")}
+  if(i==5){scales <- c("Mod1600m", "Mow1600m", "Nat1600m", "Com1600m", "Res1600m", "Build1600m")}
+  
+  
+  # Create a data frame to store the results from all the models.
+  perc.scale.models[[i]] <- data.frame()
+  
+  # For every variable you want to test:
+  for(j in c(scales)){
+    
+    model <- clm(HumanPerception ~ perc.data.trans[,j], # Create the predictive model
+                  data=perc.data.trans)
+    
+    null <- clm(HumanPerception ~1, # Create the null model
+                  data=perc.data.trans)
+    
+    
+    perc.scale.models[[i]][j,1] <- j # First column is the predictor
+    perc.scale.models[[i]][j,2] <- AIC(model) # Second column is AIC
+    perc.scale.models[[i]][j,3] <- AIC(model)-AIC(null) # third col is delta AIC compared to null
+
+
+  }
+  
+  colnames(perc.scale.models[[i]]) <- c("predictor", "AIC", "deltaAIC")
+  rm(model, scales) # Keep workspace clean
+}
+
+perc.scale.models.outputs <- dplyr::bind_rows(perc.scale.models)
+
+write.csv(perc.scale.models.outputs, "Output_Tables/human_concern_univariate_scale_mods.csv") # write csv 
+
+rm(perc.scale.models, perc.scale.models.outputs, null)
+```
+
+#### (Appendix 3 Table A3.4) Fourth, we evaluate correlations between our variables using R-squared tests. No big corrs. We also briefly write a csv file with our correlation ouptut.
+```{r}
+concern.correlations = Hmisc::rcorr(as.matrix(perc.data.trans[,c("Mod1600m", "Mow800m", "Nat1600m", "Com100m", "Res800m")]), type = c("spearman"))
+
+write.csv(concern.correlations$r, "Output_Tables/concern_correlation_coefficients.csv")
+
+rm(concern.correlations)
+```
+
+Fifth, we construct full models and select the most parsimonious models using AIC 
+```{r}
+# First, we scale and center all variables, also renaming them for ease of interpretation and plotting. 
+perc.data.modelling = perc.data.trans %>%
+  mutate(Natural = scale(Nat1600m, center = TRUE, scale = TRUE),
+         Modified_Open = scale(Mod1600m, center = TRUE, scale = TRUE),
+         Mowed = scale(Mow800m, center = TRUE, scale = TRUE),
+         Commercial =  scale(Com100m, center = TRUE, scale = TRUE),
+         Residential = scale(Res800m, center = TRUE, scale = TRUE),
+         Year = scale(Year_int, scale = TRUE, center = TRUE))
+
+perc.model.null = clm(HumanPerception ~ 1, data = perc.data.modelling)
+
+# construct model without year 
+perc.model = clm(HumanPerception ~ Natural + Modified_Open + Mowed + Commercial + Residential + Season + 
+                        Year + Year*Natural + Year*Modified_Open + Year*Mowed + Year*Commercial + Year*Residential, 
+                      data = perc.data.modelling, na.action = "na.fail")
+
+AIC(perc.model) - AIC(perc.model.null)
+
+perc.model.dredge = dredge(perc.model) # dredge to get the top models 
+
+perc.models.list = get.models(perc.model.dredge, subset = delta < 2) # 20 top models 
+
+# putting together a data frame with the outputs of all the top models 
+list_for_model_coeffs <- list()
+
+for(i in c(1:length(perc.models.list))){ # For every model in your list of models...
+   
+list_for_model_coeffs[[i]] <- data.frame( 
+    conf_2.5 = confint(perc.models.list[[i]], level=0.95)[,1], # getting 2.5% confint
+    odds = coef(perc.models.list[[i]])[-c(1:2)], # getting coefficient
+    conf_97.5 = confint(perc.models.list[[i]], level=0.95)[,2], # getting 97.5 confint
+    variable = names(coef(perc.models.list[[i]]))[-c(1:2)], # getting the variable name
+    AIC = as.factor(AIC(perc.models.list[[i]]))) # aic for model 
+
+}
+
+mod.outputs.perc = dplyr::bind_rows(list_for_model_coeffs)
+
+rm(perc.models.list, perc.model.null, perc.data.trans, list_for_model_coeffs)
+```
+
+#### (Appendix 3 Table A3.7) Writing a CSV with coefficients, confidence intervals (95%), AIC, deltaAIC, weights, and k for each of the models that made it within 2 AIC points of the top model
+```{r}
+mod.outputs.perc %>%
+  mutate(coef_confint = paste(round(odds,2), # combining coefficients and confidence intervals into one column 
+                              paste(gsub(" ", "", paste("(",round(conf_2.5, 2))), ",",gsub(" ", "", paste(round(conf_97.5,2), ")"))))) %>%
+  pivot_wider(id_col=AIC, names_from=variable, values_from = coef_confint) %>%
+  mutate(delta = perc.model.dredge[1:20,]$delta, # add delta AIC to model
+         k =perc.model.dredge[1:20,]$df, #  add # parameters to model 
+         weight = perc.model.dredge[1:20,]$weight, ) %>% # add AIC weights to model 
+  write.csv("Output_Tables/human_concern_regression_outputs.csv") # write csv with model outputs for all top models
+
+rm(perc.model.dredge)
+```
+
+#### (Appendix 3 Figure A3.2) Exploring the interaction term between year and residential habitat using the effects::package
+```{r}
+# exploring interaction between residential and year 
+perc.model.polr = MASS::polr(HumanPerception ~ Natural + Modified_Open + Mowed + Commercial + Residential + Season + 
+                        Year + Year*Natural + Year*Modified_Open + Year*Mowed + Year*Commercial + Year*Residential, 
+                      data = perc.data.modelling, na.action = "na.fail")
+
+# confirm that polr and clm qualitatively produce the same results - they do! So we're good to compare
+summary(perc.model)
+summary(perc.model.polr)
+
+perc.effects.plot = plot(effects::Effect(focal.predictors=c("Residential", "Year"), perc.model.polr), rug = FALSE) # export this plot to a jpeg file
+
+rm(perc.model, perc.model.polr, perc.effects.plot, perc.data.modelling)
+```
+
+### Final plot for ordinal regression models (Figure 4)
+Now we'll make a plot with results from both variables in the output
+```{r}
+bold.output.top.mod = subset(mod.outputs.bold, AIC == "8677.58118627508") # make a data frame with the top model output for graphing
+bold.output.top.mod$response = "Coyote Boldness"
+perc.output.top.mod = subset(mod.outputs.perc, AIC == "1788.86543070063") # make a data frame with the top model output for graphing
+perc.output.top.mod$response = "Human Concern"
+
+ordinal.outputs = rbind(bold.output.top.mod, perc.output.top.mod)
+
+ordinal.outputs$variable = factor(ordinal.outputs$variable, 
+                               levels = c( "Modified_Open:SeasonDispersal", "Modified_Open:SeasonPupRearing",
+                                          "Modified_Open","Mowed","Residential:Year", "Residential", "Building_Density", "Road_Distance_Decay",
+                                          "SeasonDispersal","SeasonPupRearing",
+                                          "Year"),
+                               labels = c( "Mod. Open (400m):Dispersal Season","Mod. Open (400m):Pup Rearing Season",
+                                          "Mod. Open (400m bold; 1600m concern)","Mowed (100m)","Residential (800m):Year", 
+                                          "Residential (800m)","Building Density (200m)", 
+                                          "Road Distance Decay", 
+                                          "Dispersal Season", "Pup Rearing Season", "Year"))
+
+ordinal.output.plot = 
+ggplot(ordinal.outputs, aes(y=odds, x=variable)) + 
+  geom_point(position=position_dodge(0.6), size=3)+
+  ylab("\nLog Odds of Increase in Ordinal Scale (95% CI)") + xlab("Predictor Variable") +
+  geom_errorbar(position = position_dodge(0.6), aes(x=variable, ymin=conf_2.5, ymax=conf_97.5), width = 0, size = 1) +
+  scale_color_manual(values =c("black", "black", "black", "black", "black", "black", "black", "black")) + 
+  theme_bw()+
+  geom_hline(yintercept = 0, linetype="dashed") +
+  theme(axis.text=element_text(size=14), axis.title=element_text(size=16, face="bold"), 
+        panel.grid = element_blank()) + 
+  facet_wrap(~response, scales = "free_x") + 
+  theme(strip.text = element_text(size = 16, face = "bold"), 
+        strip.background = element_rect(fill= "white")) +
+  coord_flip()
+
+save_plot("Figures/MS_Figs/ordinal.regression.outputs.jpeg", ordinal.output.plot, base_width = 12, base_height= 6)
+
+rm(mod.outputs.bold, mod.outputs.perc, bold.output.top.mod, perc.output.top.mod, ordinal.outputs, ordinal.output.plot, i, j)
+```
+
+
+## Figure 6. Changes in coyote boldness and human concern over years
+
+Visualizing if coyote boldness and human concern have changed over the duration of report collection using stacked bar charts. 
+```{r}
+# making a data frame with percentages per year for BOLDNESS 
+bold.time = Coyotes %>%  filter(Bold != "Unknown", Bold!= "Sighting")%>%
+  group_by(Year, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count))
+
+bold.time$Bold = factor(bold.time$Bold,
+                        labels = c("Avoid.", "Indiff.", "Bold", "Aggres."))
+
+# making a data frame with percentages of human perceptions per year
+perc.time = Coyotes %>%  filter(HumanPerception != "Concern", HumanPerception!="Unknown") %>%
+  group_by(Year, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count)) %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+
+
+# boldness plot
+bold.time.plot = 
+  ggplot(bold.time, aes(x = Year, y = perc,  fill=Bold))+
+  geom_bar(stat = "identity", position=position_dodge(), color = "black", alpha = 0.8) +       
+  theme_bw()+ 
+  geom_smooth( method = "lm", color = "black", fill="grey30", size = 1)+
+  scale_fill_brewer("Coyote Boldness", palette = "RdYlBu", direction=-1)+ 
+  ylab("Percentage of classifiable reports\n")+ 
+  scale_y_continuous(expand = c(0.01, 0.01), breaks = c(0,20,40, 60), limits = c(0,65), guide = guide_prism_minor()) + scale_x_continuous("Year", breaks = seq(2012, 2021, 2)) + 
+  theme(axis.title = element_text(size = 16), axis.text = element_text(size = 14), 
+        legend.title = element_text(size = 16), legend.text = element_text(size = 14), legend.key.size = unit(0.8, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+       legend.position ="top")+ 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5, direction = "horizontal")) + 
+  facet_wrap(~Bold, nrow = 4)+ 
+  theme(strip.background = element_blank(),
+  strip.text.x = element_blank()) + 
+  geom_text(data =  data.frame(perc = 60, Year = c(2012:2021), 
+                        lab =subset(bold.time, Bold =="Avoid.")$total,
+                   Bold = factor("Avoid.")), aes(label = lab), size = 4)
+
+
+perc.time.plot = 
+  ggplot(perc.time, aes(x = Year, y = perc, fill=HumanPerception))+
+  theme_bw() + 
+  geom_bar(stat = "identity", position=position_dodge(), color = "black", alpha =0.8) +       
+  geom_smooth( method = "lm", color = "black", fill="grey30", size = 1)+
+  scale_fill_brewer("Human Concern", palette = "RdYlBu", direction=-1)+ 
+        ylab(NULL)+ 
+  scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,80), breaks = c(0,20,40,60), position = "right", guide = guide_prism_minor()) + 
+  scale_x_continuous("Year", breaks = seq(2012, 2021, 2)) + 
+  theme(axis.title = element_text(size = 16), axis.text = element_text(size = 14), 
+        legend.title = element_text(size = 16), legend.text = element_text(size = 14), legend.key.size = unit(0.8, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        legend.position = "top") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5, direction = "horizontal")) + 
+    facet_wrap(~HumanPerception, nrow = 3) + 
+  theme(strip.background = element_blank(),
+  strip.text.x = element_blank())+ 
+  geom_text(data =  data.frame(perc = 75, Year = c(2012:2021), 
+                        lab =subset(perc.time, HumanPerception =="Positive")$total,
+                   HumanPerception = factor("Positive")), aes(label = lab), size = 4)
+
+years.plot =grid.arrange(bold.time.plot, perc.time.plot, nrow = 1)
+
+save_plot("Figures/MS_Figs/boldness.concern.over.years.plot.jpeg", years.plot, base_width = 10, base_height= 10)
+
+# Statistical analyses looking at changes over time: 
+
+# boldness => percentages ~ year
+shapiro.test(subset(bold.time, Bold =="Avoid.")$perc) # normal
+summary(lm(perc~Year, data = subset(bold.time, Bold =="Avoid.")))
+
+shapiro.test(subset(bold.time, Bold =="Indiff.")$perc) # normal
+summary(lm(perc~Year, data = subset(bold.time, Bold =="Indiff.")))
+
+shapiro.test(subset(bold.time, Bold =="Bold")$perc) # normal
+summary(lm(perc~Year, data = subset(bold.time, Bold =="Bold")))
+
+shapiro.test(subset(bold.time, Bold =="Aggres.")$perc) # normal
+summary(lm(perc~Year, data = subset(bold.time, Bold =="Aggres.")))
+
+# concern => percentages ~ year
+summary(lm(perc~Year, data = subset(perc.time, HumanPerception =="Positive")))
+shapiro.test(subset(perc.time, HumanPerception =="Positive")$perc) # normal
+
+summary(lm(perc~Year, data = subset(perc.time, HumanPerception =="Neutral")))
+shapiro.test(subset(perc.time, HumanPerception =="Neutral")$perc) # normal
+
+summary(lm(perc~Year, data = subset(perc.time, HumanPerception =="Negative")))
+shapiro.test(subset(perc.time, HumanPerception =="Negative")$perc) # normal
+
+rm(bold.time, perc.time, bold.time.plot, perc.time.plot, years.plot)
+
+```
+
+
+## Figure 7. Contextual variables associated with coyote boldness and human concern
+
+For this analysis, we use chi square tests then look at Pearson's chi square residuals to discern which categories within each of the contextual variables are most strongly related to each of the coyote boldness or human concern categories
+
+### Coyote boldness across contextual variables
+
+Coyote boldness across human activity
+```{r}
+bold.act.table = table(Coyotes$Bold, Coyotes$HumanActivity) # make a table
+
+bold.act.chsq = chisq.test(bold.act.table[3:6,c(1, 2,3,4,6)]) # run a chi square test
+bold.act.chsq$expected
+
+bold.act.chsq.resids = chisq.posthoc.test(bold.act.table[3:6,c(1, 2,3,4,5,6)], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+bold.act.chsq.resids.long = pivot_longer(bold.act.chsq.resids, cols = c(Cycling, Driving, HomeYard, OutdoorAct,Unknown, Walking))
+bold.act.chsq.resids.long = data.frame(Bold = subset(bold.act.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Act =  subset(bold.act.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.act.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.act.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"), 
+         Act = fct_relevel(Act, "Unknown", "HomeYard",  "Driving", "Cycling", "OutdoorAct", "Walking")) 
+
+
+bold.act.chsq.resids.long$Bold = factor(bold.act.chsq.resids.long$Bold, labels = c("Avoid.", "Indiff.", "Bold", "Aggres."))
+
+# plotting! 
+bold.act.chsq.plot = 
+ggplot(bold.act.chsq.resids.long, aes(y = Act, x = Bold, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "grey30") + 
+  #scale_fill_viridis(option = "turbo", direction = -1,limits = c(-20,20)) + 
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-11,19), breaks=c(-10,0,18), labels=c(-10, 0,18),  direction=-1)+ 
+  ylab("Human\nActivity") + xlab("Coyote Boldness") + 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0), position = "top")+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none", 
+        axis.ticks = element_blank(), axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16), axis.title = element_text(size = 18),
+        panel.grid = element_blank()) 
+
+rm(bold.act.chsq, bold.act.table, bold.act.chsq.resids, bold.act.chsq.resids.long)
+```
+
+Coyote boldness across vulnerable individuals
+```{r}
+bold.vul.table = table(Coyotes$Bold, Coyotes$VulnerableIndividual) # make a table
+
+bold.vul.chsq = chisq.test(bold.vul.table[3:6,1:4]) # run a chi square test
+bold.vul.chsq
+
+bold.vul.chsq.resids = chisq.posthoc.test(bold.vul.table[3:6,1:5], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+bold.vul.chsq.resids.long = pivot_longer(bold.vul.chsq.resids, cols = c(Cat, Child, Dog, Multiple, Unknown))
+bold.vul.chsq.resids.long = data.frame(Bold = subset(bold.vul.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Vul =  subset(bold.vul.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.vul.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.vul.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"), 
+         Vul= fct_relevel(Vul, "Unknown", "Multiple", "Child", "Dog", "Cat")) 
+
+# plotting! 
+bold.vul.chsq.plot = 
+ggplot(bold.vul.chsq.resids.long, aes(y = Vul, x = Bold, fill = Resids)) +
+  geom_tile() + geom_text(size = 6, color = "grey30", aes(label = sig)) + 
+  #scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
+ scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-18,18.5), direction=-1)+ 
+  ylab("Vulnerable\nIndividuals") + xlab(NULL)+
+  theme_bw()+ 
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none", 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_text(size = 16), axis.title.y = element_text(size = 18),
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank()) 
+
+rm(bold.vul.table, bold.vul.chsq, bold.vul.chsq.resids, bold.vul.chsq.resids.long)
+
+```
+
+Coyote boldness across dog leash status
+```{r}
+
+bold.leash.table= Coyotes %>% 
+  filter(VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")
+
+bold.leash.table = table(bold.leash.table$Bold, bold.leash.table$DogPresent) # make a table
+
+bold.leash.chsq = chisq.test(bold.leash.table[3:6,2:4]) # run a chi square test
+bold.leash.chsq.resids = chisq.posthoc.test(bold.leash.table[3:6, 2:4], method = "holm") # run a posthoc test
+
+# formatting a new data frame
+bold.leash.chsq.resids.long = pivot_longer(bold.leash.chsq.resids, cols = c(Leashed, OffLeash, Unknown))
+bold.leash.chsq.resids.long = data.frame(Bold = subset(bold.leash.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Leash =  subset(bold.leash.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.leash.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.leash.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"), 
+         Leash = fct_relevel(Leash, "Unknown", "OffLeash", "Leashed")) 
+
+# plotting! 
+bold.leash.chsq.plot=
+  ggplot(bold.leash.chsq.resids.long, aes(y = Leash, x = Bold, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + ylab("Leash\nStatus") + xlab(NULL)+
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-10,11), breaks  = c(-10,0,10), labels = c(-10,0,10), direction=-1)+ 
+  #scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
+  theme_bw() + 
+    scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none", 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_text(size = 16), axis.title.y = element_text(size = 18), 
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank())
+
+rm(bold.leash.chsq, bold.leash.table, bold.leash.chsq.resids, bold.leash.chsq.resids.long)
+
+```
+
+Coyote boldness across number of coyotes
+```{r}
+bold.num.table = table(Coyotes$Bold, Coyotes$CoyoteNumber) # make a table
+
+bold.num.chsq = chisq.test(bold.num.table[3:6,1:5]) # run a chi square test
+bold.num.chsq
+
+bold.num.chsq.resids = chisq.posthoc.test(bold.num.table[3:6,1:5], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+bold.num.chsq.resids.long = pivot_longer(bold.num.chsq.resids, cols = c(More, One, Three, Two, Unknown))
+bold.num.chsq.resids.long = data.frame(Bold = subset(bold.num.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Num =  subset(bold.num.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.num.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.num.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"), 
+         Num  = fct_relevel(Num,"Unknown", "More", "Three", "Two", "One")) 
+
+# plotting! 
+bold.num.chsq.plot = 
+ggplot(bold.num.chsq.resids.long, aes(y = Num, x = Bold, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "grey30") + 
+ # scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
+  ylab("Coyote\nNumber") + xlab(NULL) + 
+   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-7,7.5), breaks = c(-7,0,7), labels = c(-7, 0, 7), direction=-1)+ 
+  theme_bw() + 
+    scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none", 
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 16), axis.title.y = element_text(size = 18),
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank())
+
+rm(bold.num.chsq, bold.num.table, bold.num.chsq.resids, bold.num.chsq.resids.long)
+
+```
+
+Coyote boldness across coyote health
+```{r}
+bold.health.table = table(Coyotes$Bold, Coyotes$Health) # make a table
+
+bold.health.chsq = chisq.test(bold.health.table[3:6,1:3]) # run a chi square test
+bold.health.chsq$expected
+
+bold.health.chsq.resids = chisq.posthoc.test(bold.health.table[3:6,1:3], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+bold.health.chsq.resids.long = pivot_longer(bold.health.chsq.resids, cols = c(Unknown, Unhealthy, Healthy))
+bold.health.chsq.resids.long = data.frame(Bold = subset(bold.health.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Health =  subset(bold.health.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.health.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.health.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"), 
+         Health  = fct_relevel(Health, "Unknown", "Unhealthy", "Healthy")) 
+
+# plotting! 
+bold.health.chsq.plot = 
+ggplot(bold.health.chsq.resids.long, aes(y = Health, x = Bold, fill = Resids)) +
+  geom_tile()+ geom_text(aes(label = sig), size = 6, color = "grey30") + ylab("Coyote\nHealth") + xlab(NULL) + 
+  #scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-20,20)) + 
+   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-11,12.5), breaks = c(-11,0,12), labels = c(-11, 0, 12), direction=-1)+ 
+  theme_bw() + 
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme( axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 16), axis.title.y = element_text(size = 18),
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank(), 
+        legend.position = "none") 
+
+rm(bold.health.chsq, bold.health.chsq.resids, bold.health.chsq.resids.long, bold.health.table)
+```
+
+### Human concern across contextual variables
+
+Human concern across human activity
+```{r}
+perc.act.table = table(Coyotes$HumanPerception, Coyotes$HumanActivity) # make a table
+
+perc.act.chsq = chisq.test(perc.act.table[2:4,c(2,3,5,6)]) # run a chi square test
+perc.act.chsq$expected # need to remove cycling and outdoor activity because expected chi square is less than 5
+
+perc.act.chsq.resids = chisq.posthoc.test(perc.act.table[2:4,c(2,3,5,6)], method = "holm") # run a posthoc test
+
+# formatting a new data frame
+perc.act.chsq.resids.long = pivot_longer(perc.act.chsq.resids, cols = c(Driving, HomeYard, Unknown, Walking))
+perc.act.chsq.resids.long = data.frame(Perc = subset(perc.act.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Act =  subset(perc.act.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(perc.act.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(perc.act.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Perc = fct_relevel(Perc, "Positive", "Neutral", "Negative")) 
+
+# add in 6 rows, with each of 
+perc.act.chsq.resids.long = 
+  rbind(perc.act.chsq.resids.long, data.frame(Perc = c("Positive", "Neutral", "Negative", "Positive", "Neutral", "Negative"),
+                                       Act =  c("Cycling","Cycling","Cycling","OutdoorAct", "OutdoorAct", "OutdoorAct"), 
+                                       Resids = NA, 
+                                       Pval = 0,
+                                       sig = "NA"))
+
+perc.act.chsq.resids.long$Act = fct_relevel(perc.act.chsq.resids.long$Act, 
+                                            "Unknown", "HomeYard",  "Driving", "Cycling", "OutdoorAct", "Walking")
+
+# plotting!
+perc.act.chsq.plot=
+ggplot(perc.act.chsq.resids.long, aes(y = Act, x = Perc, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + 
+  #scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-15,15)) +
+   scale_fill_distiller("Residuals", palette = "RdYlBu", na.value = "grey80", limits =c(-11,19), breaks=c(-10,0,18), labels=c(-10, 0, 18), direction=-1)+ 
+  xlab("Human Concern") + ylab(NULL) + 
+  scale_x_discrete(expand =c(0,0), position = "top")+ scale_y_discrete(expand = c(0,0))+
+  theme_bw()+ 
+  theme(legend.position = "right", 
+        axis.text.x = element_text(size = 16), axis.title= element_text(size = 18),
+        axis.text.y = element_blank(), 
+        axis.ticks = element_blank(),
+        legend.text = element_text(size = 14), legend.title = element_blank(), 
+        panel.grid = element_blank()) + 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(perc.act.chsq, perc.act.table, perc.act.chsq.resids, perc.act.chsq.resids.long)
+```
+
+Human concern across vulnerable individuals
+```{r}
+perc.vul.table = table(Coyotes$HumanPerception, Coyotes$VulnerableIndividual) # make a table
+
+perc.vul.chsq = chisq.test(perc.vul.table[2:4,1:5]) # run a chi square test
+
+perc.vul.chsq.resids = chisq.posthoc.test(perc.vul.table[2:4,1:5], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+perc.vul.chsq.resids.long = pivot_longer(perc.vul.chsq.resids, cols = c(Cat, Child, Dog, Multiple, Unknown))
+perc.vul.chsq.resids.long = data.frame(Perc = subset(perc.vul.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Vul =  subset(perc.vul.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(perc.vul.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(perc.vul.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Perc = fct_relevel(Perc, "Positive", "Neutral", "Negative"),
+                  Vul= fct_relevel(Vul, "Unknown", "Multiple", "Child", "Dog", "Cat")) 
+ 
+
+# plotting! 
+perc.vul.chsq.plot =
+ggplot(perc.vul.chsq.resids.long, aes(y = Vul, x = Perc, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "grey30") + 
+ # scale_fill_viridis(option = "turbo", direction = -1,limits = c(-15,15)) +
+  ylab(NULL)+ xlab(NULL)+
+ scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", breaks=c(-18,0,18), labels=c(-18, 0,18), limits = c(-18, 18.5), direction=-1)+ 
+   theme_bw()+ 
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "right",
+        legend.text = element_text(size = 14), legend.title = element_blank(), 
+        panel.grid = element_blank()) + 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+
+rm(perc.vul.table, perc.vul.chsq, perc.vul.chsq.resids, perc.vul.chsq.resids.long)
+```
+
+Human concern across dog leash status
+```{r}
+perc.leash.table = Coyotes %>% 
+  filter(VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")
+
+perc.leash.table= table(perc.leash.table$HumanPerception, perc.leash.table$DogPresent) # make a table
+
+perc.leash.chsq = chisq.test(perc.leash.table[2:3, 2:4]) # run a chi square test excluding positive 
+perc.leash.chsq.resids = chisq.posthoc.test(perc.leash.table[2:3,2:4], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+perc.leash.chsq.resids.long = pivot_longer(perc.leash.chsq.resids, cols = c(Leashed, OffLeash, Unknown))
+perc.leash.chsq.resids.long = data.frame(Perc = subset(perc.leash.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Leash =  subset(perc.leash.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(perc.leash.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(perc.leash.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+        Leash = fct_relevel(Leash, "Unknown", "OffLeash", "Leashed")) 
+
+
+# add in 6 rows, with each of 
+perc.leash.chsq.resids.long = 
+  rbind(perc.leash.chsq.resids.long, data.frame(Perc = c("Positive", "Positive", "Positive"),
+                                       Leash =  c("Leashed","OffLeash","Unknown"), 
+                                       Resids = NA, 
+                                       Pval = 0,
+                                       sig = "NA"))
+
+perc.leash.chsq.resids.long$Perc = fct_relevel(perc.leash.chsq.resids.long$Perc, "Positive", "Neutral", "Negative")
+
+# plotting! 
+perc.leash.chsq.plot=
+  ggplot(perc.leash.chsq.resids.long, aes(y = Leash, x = Perc, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + ylab(NULL) + xlab(NULL)+
+ # scale_fill_viridis(option = "turbo", direction = -1,limits = c(-15,15)) + 
+  scale_fill_distiller(palette = "RdYlBu", na.value = "grey80",  limits =c(-10,11), breaks  = c(-9,0,10), labels = c(-9,0,10), direction=-1)+ 
+  theme_bw() + 
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "right",
+        legend.text = element_text(size = 14), legend.title = element_blank(), 
+        panel.grid = element_blank()) + 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(perc.leash.chsq, perc.leash.chsq.resids, perc.leash.chsq.resids.long, perc.leash.table)
+```
+
+Human concern across number of coyotes
+```{r}
+perc.num.table = table(Coyotes$HumanPerception, Coyotes$CoyoteNumber) # make a table
+
+perc.num.chsq = chisq.test(perc.num.table[2:4,1:5]) # run a chi square test
+
+perc.num.chsq.resids = chisq.posthoc.test(perc.num.table[2:4,1:5], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+perc.num.chsq.resids.long = pivot_longer(perc.num.chsq.resids, cols = c(More, One, Two, Three, Unknown))
+perc.num.chsq.resids.long = data.frame(Perc = subset(perc.num.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Num =  subset(perc.num.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(perc.num.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(perc.num.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Perc = fct_relevel(Perc, "Positive", "Neutral", "Negative"), 
+         Num  = fct_relevel(Num,"Unknown", "More", "Three", "Two", "One")) 
+
+# plotting! 
+perc.num.chsq.plot = 
+  ggplot(perc.num.chsq.resids.long, aes(y = Num, x = Perc, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6,color="grey30") +
+   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-7,7.5), breaks = c(-7,0,7), labels = c(-7, 0, 7), direction=-1)+ 
+
+#  scale_fill_viridis(option = "turbo", direction = -1,limits = c(-15,15)) + 
+  ylab(NULL)+ xlab(NULL)+ 
+  theme_bw()+ 
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+    theme(axis.text = element_blank(), axis.ticks = element_blank(), 
+        legend.text = element_text(size = 14), legend.title = element_blank(),
+        panel.grid = element_blank()) + 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(perc.num.chsq, perc.num.table, perc.num.chsq.resids, perc.num.chsq.resids.long)
+
+```
+
+Human concern across coyote health
+```{r}
+perc.health.table = table(Coyotes$HumanPerception, Coyotes$Health) # make a table
+
+perc.health.chsq = chisq.test(perc.health.table[2:4,]) # run a chi square test
+
+perc.health.chsq.resids = chisq.posthoc.test(perc.health.table[2:4,], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+perc.health.chsq.resids.long = pivot_longer(perc.health.chsq.resids, cols = c(Healthy, Unhealthy, Unknown))
+perc.health.chsq.resids.long = data.frame(Perc = subset(perc.health.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Health =  subset(perc.health.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(perc.health.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(perc.health.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Perc = fct_relevel(Perc, "Positive", "Neutral", "Negative"), 
+         Health  = fct_relevel(Health, "Unknown", "Unhealthy", "Healthy")) 
+
+# plotting! 
+perc.health.chsq.plot=
+  ggplot(perc.health.chsq.resids.long, aes(y = Health, x = Perc, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + ylab(NULL) + xlab(NULL)+
+   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-11,12.5), breaks = c(-10,0,12), labels = c(-10, 0, 12), direction=-1)+ 
+#  scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-15,15)) +
+  theme_bw() + 
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), 
+        legend.text = element_text(size = 14), legend.title = element_blank(),
+        panel.grid = element_blank()) + 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(perc.health.table, perc.health.chsq, perc.health.chsq.resids, perc.health.chsq.resids.long)
+```
+
+Now plot a bunch of those contextual variables together to make figure 6
+```{r}
+
+context.plot = 
+  ggdraw()+
+  draw_plot(bold.act.chsq.plot, x= 0, y = 0.7, height =0.3, width =.5)+
+  draw_plot_label(label = "Pearson's Residuals", x=0.9, y=0.35, size =20, color ="black",  fontface = "plain",
+ angle = 90, hjust = 0, vjust = 0)+
+#  draw_plot_label(label = "A.", x=0.087, y=1, size =25, color ="black")+
+  draw_plot(bold.vul.chsq.plot, x= 0.02, y = 0.5, height =0.2, width =.48) +
+ # draw_plot_label(label = "B.", x=0.302, y=1, size =25, color ="black")+
+  draw_plot(bold.leash.chsq.plot, x= 0.015, y = 0.35, height =0.15, width =.485) + 
+#  draw_plot_label(label = "C.", x=0.502, y=1, size =25, color ="black")+
+  draw_plot(bold.num.chsq.plot, x= 0.02, y = 0.15, height =0.2, width =.48) +
+#  draw_plot_label(label = "D.", x=0.622, y=1, size =25, color ="black")+
+  draw_plot(bold.health.chsq.plot, x= 0.01, y = 0, height =0.15, width =.49) +
+#  draw_plot_label(label = "E.", x=0.802, y=1, size =25, color ="black")+
+  draw_plot(perc.act.chsq.plot, x= .5, y = .7, height =.3, width =.38) + 
+#  draw_plot_label(label = "F.", x=0.09, y=0.55, size =25, color ="black")+
+  draw_plot(perc.vul.chsq.plot, x= .5, y = .5, height =.2, width =.38) +
+#  draw_plot_label(label = "G.", x=0.30, y=0.55, size =25, color = "black")+
+  draw_plot(perc.leash.chsq.plot, x= .5, y = .35, height =0.15, width =.365) + 
+ # draw_plot_label(label = "H.", x=0.50, y=0.55, size =25, color ="black")+
+  draw_plot(perc.num.chsq.plot, x= .5, y = 0.15, height =.2, width =.365) + 
+ # draw_plot_label(label = "I.", x=0.63, y=0.55, size =25, color ="black")+
+  draw_plot(perc.health.chsq.plot, x= .5, y = 0, height =.15, width =.38)  
+#  draw_plot_label(label = "J.", x=0.805, y=0.55, size =25, color ="black")
+
+
+
+save_plot("Figures/MS_Figs/context.plot.jpeg", context.plot, base_width = 10, base_height= 10)
+
+          
+rm(bold.act.chsq.plot, bold.vul.chsq.plot, bold.leash.chsq.plot, bold.num.chsq.plot, bold.health.chsq.plot, 
+   perc.act.chsq.plot, perc.vul.chsq.plot, perc.leash.chsq.plot, perc.num.chsq.plot,  perc.health.chsq.plot, 
+   context.plot)
+
+
+```
+
+
+# Figures and Tables for Appendices
+
+### APPENDIX 2: Coyote boldness and human concern across variables
+
+#### Appendix 2 Tables A2.1 & A2.2 
+
+Calculating and putting together at table of percentages of reports for each bold/concern category across independent variable categories 
+```{r}
+# Habitat types
+bold.hab = Coyotes %>%  filter(Bold!="Unknown", Bold!="Sighting") %>%
+  group_by(Habitat, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         var = "Land Cover",
+         Habitat = recode(Habitat, Com100m ="Commercial", Mod100m = "Modified Open", Mow100m = "Mowed", Nat100m = "Natural",
+                          Res100m = "Residential")) %>%
+  mutate(cat = Habitat)
+bold.hab = dplyr::select(data.frame(bold.hab), c(Bold, var, cat, count, perc))
+
+perc.hab = Coyotes %>%  filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(Habitat, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+          var = "Land Cover",
+         HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")),
+         Habitat = recode(Habitat,  Com100m ="Commercial", Mod100m = "Modified Open", Mow100m = "Mowed", Nat100m = "Natural",
+                          Res100m = "Residential")) %>%
+  mutate(cat = Habitat)
+perc.hab = dplyr::select(data.frame(perc.hab), c(HumanPerception, var, cat, count, perc))
+
+# Season
+bold.season = Coyotes %>%  filter(Bold!="Unknown", Bold!="Sighting") %>%
+  group_by(Season, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count)) %>%
+  mutate(cat = Season, 
+         var = "Season")
+bold.season = dplyr::select(data.frame(bold.season), c(Bold, var, cat, count, perc))
+
+perc.season = Coyotes %>%  filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(Season, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         var = "Season",
+         HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative"))) %>%
+  mutate(cat = Season)
+perc.season = dplyr::select(data.frame(perc.season), c(HumanPerception, var, cat, count, perc))
+
+# night and day
+bold.diurnal = Coyotes %>%  filter(Bold!="Unknown", Bold!="Sighting")%>%
+  group_by(NightDay, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         Bold = recode(Bold, avoid = "Avoidance", indiff = "Indifferent", bold= "Bold", aggress = "Aggressive"), 
+         cat = NightDay, 
+         var = "Time of Day")
+bold.diurnal = dplyr::select(data.frame(bold.diurnal), c(Bold, var, cat, count, perc))
+
+perc.diurnal = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(NightDay, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count)) %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")), 
+         cat = NightDay, 
+         var = "Time of Day")
+perc.diurnal = dplyr::select(data.frame(perc.diurnal), c(HumanPerception, var, cat, count, perc))
+
+# Human activity 
+bold.act = Coyotes %>% filter(Bold!="Unknown", Bold!="Sighting") %>%
+  group_by(HumanActivity, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = HumanActivity, 
+         var = "Human Activity")
+bold.act = dplyr::select(data.frame(bold.act), c(Bold, var, cat, count, perc))
+
+perc.act = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(HumanActivity, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat= HumanActivity, 
+         var = "Human Activity") %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+perc.act = dplyr::select(data.frame(perc.act), c(HumanPerception, var, cat, count, perc))
+
+# Vulnerable individuals
+bold.vul =  Coyotes %>% filter(Bold != "Unknown", Bold  != "Sighting") %>%
+  group_by(VulnerableIndividual, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = VulnerableIndividual, 
+         var = "Vulnerable Individual")
+bold.vul = dplyr::select(data.frame(bold.vul), c(Bold, var, cat, count, perc))
+
+perc.vul = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(VulnerableIndividual, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = VulnerableIndividual, 
+         var = "Vulnerable Individual") %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+perc.vul = dplyr::select(data.frame(perc.vul), c(HumanPerception, var, cat, count, perc))
+
+
+# Dog leash status
+bold.leash =  Coyotes %>% filter(Bold != "Unknown", Bold  != "Sighting", DogPresent !="HomeYard", VulnerableIndividual =="Dog"| VulnerableIndividual=="Multiple") %>%
+  group_by(DogPresent, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = DogPresent, 
+         var = "Dog Leash Status")
+bold.leash = dplyr::select(data.frame(bold.leash), c(Bold, var, cat, count, perc))
+
+perc.leash = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown", DogPresent !="HomeYard",  VulnerableIndividual =="Dog"| VulnerableIndividual=="Multiple")%>%
+  group_by(DogPresent, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = DogPresent, 
+         var = "Dog Leash Status") %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+perc.leash = dplyr::select(data.frame(perc.leash), c(HumanPerception, var, cat, count, perc))
+
+# Coyote number
+bold.num =  Coyotes %>% filter(Bold != "Unknown", Bold  != "Sighting") %>%
+  group_by(CoyoteNumber, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = CoyoteNumber, 
+         var = "Coyote Number")
+bold.num = dplyr::select(data.frame(bold.num), c(Bold, var, cat, count, perc))
+
+perc.num = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(CoyoteNumber, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = CoyoteNumber, 
+         var = "Coyote") %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+perc.num = dplyr::select(data.frame(perc.num), c(HumanPerception, var, cat, count, perc))
+
+# Coyote health
+bold.health =  Coyotes %>% filter(Bold != "Unknown", Bold  != "Sighting") %>%
+  group_by(Health, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = Health, 
+         var = "Health")
+bold.health = dplyr::select(data.frame(bold.health), c(Bold, var, cat, count, perc))
+
+perc.health = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(Health, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         cat = Health,
+         var = "Health") %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+perc.health = dplyr::select(data.frame(perc.health), c(HumanPerception, var, cat, count, perc))
+
+# bind all these data files together for ease of export
+bold.percentages = rbind(bold.hab, bold.season, bold.diurnal, bold.act, bold.vul, bold.leash, bold.num, bold.health) %>%
+  mutate(count_perc = paste(count, gsub(" ","", paste("(",round(perc, digits = 1),"%)")))) %>%
+  dplyr::select(c(Bold, var, cat, count_perc)) %>%
+  pivot_wider(names_from = Bold, values_from = count_perc)
+
+
+
+
+perc.percentages = rbind(perc.hab, perc.season, perc.diurnal, perc.act, perc.vul, perc.leash, perc.num, perc.health) %>%
+  mutate(count_perc = paste(count, gsub(" ","", paste("(",round(perc, digits = 1),"%)")))) %>%
+  dplyr::select(c(HumanPerception, var, cat, count_perc)) %>%
+  pivot_wider(names_from = HumanPerception, values_from = count_perc)
+
+
+# write csv files with outputs for tableing
+write.csv(bold.percentages, "Output_Tables/Percentages_bold_across_ind_vars.csv")
+write.csv(perc.percentages, "Output_Tables/Percentages_perc_across_ind_vars.csv")
+
+# keep the workspace clean
+rm(bold.hab, bold.season, bold.diurnal, bold.act, bold.vul, bold.leash, bold.num, bold.health, 
+   perc.hab, perc.season, perc.diurnal, perc.act, perc.vul, perc.leash, perc.num, perc.health, 
+   bold.percentages, perc.percentages)
+```
+
+#### Appendix 2 Table A2.3
+
+Pearson's chi-square tests between boldness and concern and all contextual, temporal and categorical land cover vars
+
+```{r}
+# COYOTE BOLDNESS FIRST
+
+# land cover vars
+bold.hab.table = table(Coyotes$Bold, Coyotes$Habitat)
+bold.hab.chsq = chisq.test(bold.hab.table[3:6,]) 
+
+# time of day
+bold.diel.table = table(Coyotes$Bold, Coyotes$NightDay)
+bold.diel.chsq = chisq.test(bold.diel.table[3:6,1:2]) 
+
+# season
+bold.szn.table = table(Coyotes$Bold, Coyotes$Season)
+bold.szn.chsq = chisq.test(bold.szn.table[3:6,]) 
+
+# contextual variables
+bold.vul.table = table(Coyotes$Bold, Coyotes$VulnerableIndividual)
+bold.vul.chsq = chisq.test(bold.vul.table[3:6,]) 
+
+bold.act.table = table(Coyotes$Bold, Coyotes$HumanActivity)
+bold.act.chsq = chisq.test(bold.act.table[3:6, 2:6]) 
+
+bold.leash.table = table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$Bold, 
+                         subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent)
+bold.leash.chsq = chisq.test(bold.leash.table[3:6,2:4]) 
+
+bold.num.table = table(Coyotes$Bold, Coyotes$CoyoteNumber)
+bold.num.chsq = chisq.test(bold.num.table[3:6,]) 
+
+bold.health.table = table(Coyotes$Bold, Coyotes$Health)
+bold.health.chsq = chisq.test(bold.health.table[3:6,]) 
+
+
+# HUMAN CONCERN SECOND
+
+# land cover vars
+perc.hab.table = table(Coyotes$HumanPerception, Coyotes$Habitat)
+perc.hab.chsq = chisq.test(perc.hab.table[2:4,]) 
+
+# time of day
+perc.diel.table = table(Coyotes$HumanPerception, Coyotes$NightDay)
+perc.diel.chsq = chisq.test(perc.diel.table[2:4,1:2]) 
+
+# season
+perc.szn.table = table(Coyotes$HumanPerception, Coyotes$Season)
+perc.szn.chsq = chisq.test(perc.szn.table[2:4,])
+
+# contextual variables
+perc.vul.table = table(Coyotes$HumanPerception, Coyotes$VulnerableIndividual)
+perc.vul.chsq = chisq.test(perc.vul.table[2:4,])
+
+perc.act.table = table(Coyotes$HumanPerception, Coyotes$HumanActivity)
+perc.act.chsq = chisq.test(perc.act.table[2:4,c(2,3,5,6)]) # exclude cycling and outdoor activity
+
+perc.leash.table = table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$HumanPerception, 
+                         subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent)
+perc.leash.chsq = chisq.test(perc.leash.table[2:3,2:4]) 
+
+perc.num.table = table(Coyotes$HumanPerception, Coyotes$CoyoteNumber)
+perc.num.chsq = chisq.test(perc.num.table[2:4,]) 
+
+perc.health.table = table(Coyotes$HumanPerception, Coyotes$Health)
+perc.health.chsq = chisq.test(perc.health.table[2:4,]) 
+
+perc.bold.table = table(Coyotes$HumanPerception, Coyotes$Bold)
+perc.bold.chsq = chisq.test(perc.bold.table[2:4,3:6]) 
+
+
+# cleaning up workspace
+rm(bold.hab.table, bold.diel.table,bold.szn.table, bold.vul.table, bold.act.table, bold.leash.table, bold.num.table, bold.health.table,
+                         perc.hab.table, perc.diel.table, perc.szn.table, perc.vul.table, perc.act.table, perc.leash.table, perc.num.table, perc.health.table, perc.bold.table)
+
+# making a list to input to the loop to extract results
+conflict_chsq_list = list(bold.hab.chsq, bold.diel.chsq, bold.szn.chsq, bold.vul.chsq, bold.act.chsq, bold.leash.chsq, bold.num.chsq, bold.health.chsq,
+                         perc.hab.chsq, perc.diel.chsq, perc.szn.chsq, perc.vul.chsq, perc.act.chsq, perc.leash.chsq, perc.num.chsq, perc.health.chsq, perc.bold.chsq)
+
+
+# putting together a data frame with the outputs of all the chi square tests
+list_for_conflict_chsq <- list()
+
+for(i in c(1:length(conflict_chsq_list))){ 
+   
+list_for_conflict_chsq[[i]] <- data.frame(
+  
+               name = conflict_chsq_list[[i]]$data.name, # name of table - used to ID variable input
+               count = sum(conflict_chsq_list[[i]]$observed),
+               Xsqu = conflict_chsq_list[[i]]$statistic, # chi square stat
+              df = conflict_chsq_list[[i]]$parameter, # degrees of freedom 
+               pval = conflict_chsq_list[[i]]$p.value # p value (assuming alpha =0.05)
+)
+}
+
+chsq.correlation.outputs.conflict = dplyr::bind_rows(list_for_conflict_chsq) # bind list into a data frame
+
+sum(bold.hab.chsq$observed)
+
+write.csv(chsq.correlation.outputs.conflict, "Output_Tables/Xsquare_conflict_testing_correlation_outputs.csv")
+
+
+# cleaning up the workspace
+rm(bold.hab.chsq, bold.diel.chsq, bold.vul.chsq, bold.szn.chsq, bold.act.chsq, bold.leash.chsq, bold.num.chsq, bold.health.chsq,
+                         perc.hab.chsq, perc.diel.chsq,perc.szn.chsq, perc.vul.chsq, perc.act.chsq, perc.leash.chsq, perc.num.chsq, perc.health.chsq, perc.bold.chsq, 
+   list_for_conflict_chsq, conflict_chsq_list, chsq.correlation.outputs.conflict)
+
+
+
+
+```
+
+#### Appendix 2 Figure A2.1.  
+
+Bold and concern over diel scale - analysis based on chi square reports (figure for boldness only as concern was n.s.)
+```{r}
+# First, coyote boldness 
+bold.diel.table = table(Coyotes$Bold, Coyotes$NightDay) # make a table
+bold.diel.chsq = chisq.test(bold.diel.table[3:6,1:2]) # chi square test - significant result
+bold.diel.chsq.resids = chisq.posthoc.test(bold.diel.table[3:6,1:2], method = "holm") # run a posthoc test as this result was significant
+
+# formatting a new data frame
+bold.diel.chsq.resids.long = pivot_longer(bold.diel.chsq.resids, cols = c(Day ,Night))
+bold.diel.chsq.resids.long = data.frame(Bold = subset(bold.diel.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       NightDay =  subset(bold.diel.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.diel.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.diel.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"))
+
+# plotting! 
+bold.diel.chsq.plot = 
+ggplot(bold.diel.chsq.resids.long, aes(y = Bold, x = NightDay, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "white") + 
+  xlab("Time of Day") + ylab("Coyote Boldness") + 
+  scale_fill_distiller("Pearson's\nResiduals",palette = "RdYlBu", na.value = "grey80", limits =c(-5,5), breaks=c(-5,0,5), labels=c(-5, 0,5),  direction=-1)+ 
+  theme_bw() + 
+    scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "right", legend.text= element_text(size = 16),legend.title = element_text(size = 18),
+        axis.text = element_text(size = 16), axis.title = element_text(size = 18),
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank()) + 
+      guides(fill = guide_colourbar(ticks = FALSE))
+
+save_plot("Figures/bold.diel.chsq.plot.plot.jpeg", bold.diel.chsq.plot, base_width = 5, base_height= 3)
+
+
+# human concern - not a significant chi-square result so we did NOT conduct a posthoc test or visualize residuals
+perc.diel.table = table(Coyotes$HumanPerception, Coyotes$NightDay)
+
+perc.diel.chsq = chisq.test(perc.diel.table[2:4, 1:2]) # comparing night and day --> NOT A SIGNIFICANT RELATIONSHIP
+# therefore no posthoc tests or any of that jazz
+perc.diel.chsq$observed
+perc.diel.chsq$expected
+
+rm(perc.diel.table, perc.diel.chsq, bold.diel.table, bold.diel.chsq.plot, bold.diel.chsq.resids.long, bold.diel.chsq, bold.diel.chsq.resids)
+
+```
+
+
+### APPENDIX 3 ORDERED LOGISTIC REGRESSION MODELLING (see above for Tables A3.2, A3.3, A3.4, A3.6 and A3.7, and Figures A3.1 and A3.2)
+
+#### Appendix 3 Table A3.1 
+
+Looking for chi-square correlations between contextual variables, season, and night/day  
+```{r}
+# first, run chi square tests for all combinations of variables. 
+
+vul.act.table = table(Coyotes$VulnerableIndividual, Coyotes$HumanActivity)
+vul.act.chsq = chisq.test(vul.act.table[2:4, 2:5]) #exclude cats and cycling as they have < 5 expected reports in a few categories
+
+vul.leash.table = table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$VulnerableIndividual, 
+                        subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent) # remove cat as <5 expected
+vul.leash.chsq = chisq.test(vul.leash.table[,2:4 ]) 
+
+vul.health.table = table(Coyotes$VulnerableIndividual, Coyotes$Health)
+vul.health.chsq = chisq.test(vul.health.table)
+
+vul.num.table =  table(Coyotes$VulnerableIndividual, Coyotes$CoyoteNumber)
+vul.num.chsq = chisq.test(vul.num.table)
+
+act.leash.table =  table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$HumanActivity, 
+                         subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent) # remove cycling, driving and outdoor act as they have < 5 expected reports
+act.leash.chsq = chisq.test(act.leash.table[c(3,5,6),2:4])
+
+act.health.table =  table(Coyotes$HumanActivity, Coyotes$Health) # remove cycling as some categories < 5 expected reports
+act.health.chsq = chisq.test(act.health.table[2:6,])
+
+act.num.table =  table(Coyotes$HumanActivity, Coyotes$CoyoteNumber) # remove cycling as some categories < 5 expected reports
+act.num.chsq = chisq.test(act.num.table[2:6,])
+
+leash.num.table =  table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent,
+                         subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$CoyoteNumber) 
+leash.num.chsq = chisq.test(leash.num.table)
+
+leash.health.table =  table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent,
+                            subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$Health) 
+leash.health.chsq = chisq.test(leash.health.table)
+
+num.health.table = table(Coyotes$CoyoteNumber, Coyotes$Health)
+num.health.chsq = chisq.test(num.health.table)
+
+# season and contextual variables 
+szn.act.table =  table(Coyotes$Season, Coyotes$HumanActivity)
+szn.act.chsq = chisq.test(szn.act.table)
+
+szn.vul.table =  table(Coyotes$Season, Coyotes$VulnerableIndividual)
+szn.vul.chsq = chisq.test(szn.vul.table)
+
+szn.leash.table =  table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$Season, 
+                         subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent)
+szn.leash.chsq = chisq.test(szn.leash.table)
+
+szn.num.table =  table(Coyotes$Season, Coyotes$CoyoteNumber)
+szn.num.chsq = chisq.test(szn.num.table)
+
+szn.health.table =  table(Coyotes$Season, Coyotes$Health)
+szn.health.chsq = chisq.test(szn.health.table)
+
+# season and night/day 
+szn.diel.table =  table(Coyotes$Season, Coyotes$NightDay)
+szn.diel.chsq = chisq.test(szn.diel.table[,1:2])
+
+# night/day and contextual variables
+diel.act.table =  table(Coyotes$NightDay, Coyotes$HumanActivity)
+diel.act.chsq = chisq.test(diel.act.table[1:2,])
+
+diel.vul.table =  table(Coyotes$NightDay, Coyotes$VulnerableIndividual)
+diel.vul.chsq = chisq.test(diel.vul.table[1:2,])
+
+diel.leash.table =  table(subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$NightDay, 
+                          subset(Coyotes, VulnerableIndividual == "Dog" | VulnerableIndividual =="Multiple")$DogPresent)
+diel.leash.chsq = chisq.test(diel.leash.table[1:2,])
+
+diel.num.table =  table(Coyotes$NightDay, Coyotes$CoyoteNumber)
+diel.num.chsq = chisq.test(diel.num.table[1:2,])
+
+diel.health.table =  table(Coyotes$NightDay, Coyotes$Health)
+diel.health.chsq = chisq.test(diel.health.table[1:2,])
+
+# cleaning up workspace
+rm(num.health.table, leash.health.table, leash.num.table, act.num.table, act.health.table, act.leash.table, 
+   vul.num.table, vul.health.table, vul.leash.table, vul.act.table, 
+   szn.act.table, szn.vul.table, szn.leash.table, szn.num.table, szn.health.table, szn.diel.table,
+   diel.act.table, diel.vul.table, diel.leash.table, diel.num.table, diel.health.table)
+
+# making a list to input to the loop to extract results
+context_chsq_list = list(num.health.chsq, leash.health.chsq, leash.num.chsq, act.num.chsq, act.health.chsq, act.leash.chsq, 
+   vul.num.chsq, vul.health.chsq, vul.leash.chsq, vul.act.chsq, 
+   szn.act.chsq, szn.vul.chsq, szn.leash.chsq, szn.num.chsq, szn.health.chsq, szn.diel.chsq,
+   diel.act.chsq, diel.vul.chsq, diel.leash.chsq, diel.num.chsq, diel.health.chsq)
+
+
+# putting together a data frame with the outputs of all the chi square tests
+list_for_context_chsq <- list()
+
+for(i in c(1:length(context_chsq_list))){ 
+   
+list_for_context_chsq[[i]] <- data.frame(
+  
+               name = context_chsq_list[[i]]$data.name, # name of table - used to ID variable input
+               count = sum(context_chsq_list[[i]]$observed),
+               Xsqu = context_chsq_list[[i]]$statistic, # chi square stat
+              df = context_chsq_list[[i]]$parameter, # degrees of freedom 
+               pval = context_chsq_list[[i]]$p.value # p value (assuming alpha =0.05)
+)
+}
+
+chsq.correlation.outputs = dplyr::bind_rows(list_for_context_chsq) # bind list into a data frame
+
+write.csv(chsq.correlation.outputs, "Output_Tables/Xsquare_correlation_outputs.csv")
+
+
+# cleaning up the workspace
+rm(num.health.chsq, leash.health.chsq, leash.num.chsq, act.num.chsq, act.health.chsq, act.leash.chsq, 
+   vul.num.chsq, vul.health.chsq, vul.leash.chsq, vul.act.chsq, 
+   szn.act.chsq, szn.vul.chsq, szn.leash.chsq, szn.num.chsq, szn.health.chsq, szn.diel.chsq,
+   diel.act.chsq, diel.vul.chsq, diel.leash.chsq, diel.num.chsq, diel.health.chsq)
+
+
+
+
+```
+
+
+# Additional Figs and Tables not included in final drafts 
+
+Boldness & Human concern across land cover types - Figure showing trends as percentages (not included in final drafts)
+```{r}
+# boldness across habitat types
+bold.hab = Coyotes %>%  filter(Bold!="Unknown", Bold!="Sighting") %>%
+  group_by(Habitat, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         Bold = recode(Bold, avoid = "Avoidance", indiff = "Indifferent", bold= "Bold", aggress = "Aggressive"),
+         Habitat = recode(Habitat, Com100m ="Commercial", Mod100m = "Modified Open", Mow100m = "Mowed", Nat100m = "Natural",
+                          Res100m = "Residential"))
+
+# perceptions across habitat types
+perc.hab = Coyotes %>%  filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(Habitat, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")),
+         Habitat = recode(Habitat,  Com100m ="Commercial", Mod100m = "Modified Open", Mow100m = "Mowed", Nat100m = "Natural",
+                          Res100m = "Residential"))
+
+label.position.hab.perc = rep(99, times=15)
+label.position.hab.bold = rep(99, times=20)
+
+bold.hab.plot = 
+  ggplot(bold.hab, aes(x = Habitat, y = perc,  fill=Bold))+
+  geom_bar(position = "stack", stat = "identity") +                    
+  theme_bw() + ylab(NULL)+ 
+  scale_fill_viridis("Coyote Boldness", discrete=TRUE, option = "inferno", direction = -1) + scale_y_continuous(expand = c(0.01, 0.01)) +
+  geom_text(aes(x=Habitat, y = label.position.hab.bold,  label=total), vjust=1, size = 6) + 
+  theme(axis.title = element_text(size = 17),axis.text = element_text(size = 15),
+        axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank(),
+        legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        legend.position = "right") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+
+perc.hab.plot = 
+  ggplot(perc.hab, aes(x = Habitat, y = perc,  fill=HumanPerception))+
+  geom_bar(position = "stack", stat = "identity") +                    
+  theme_bw() + ylab(NULL)+ xlab("Land Cover Type")+
+  scale_fill_viridis("Human Concern", discrete=TRUE, option = "magma", direction = -1) + scale_y_continuous(expand = c(0.01, 0.01)) +
+  geom_text(aes(x=Habitat, y = label.position.hab.perc,  label=total), vjust=1, size = 6) + 
+  theme(axis.title = element_text(size = 17), axis.text.x = element_text(size = 15, angle = 45, hjust = 1), 
+        axis.text.y=element_text(size = 15),
+        legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  axis.ticks = element_blank(),
+        legend.position = "right") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+ 
+
+bold.perc.habitat = 
+ ggdraw()+
+  draw_plot(bold.hab.plot, x= 0.05, y = 0.58, width =0.95, height =.42)+ 
+  draw_plot(perc.hab.plot, x= 0.05, y = 0, width =.95, height =.58) + 
+   draw_plot_label(label = "Percentage of Classifiable Reports", x=0.04, y=0.35, size =20, color ="black",  fontface = "plain", angle = 90, hjust = 0, vjust = 0)
+   
+       save_plot("Figures/bold.and.concern.habitat.plot.jpeg", bold.perc.habitat, base_width = 8, base_height= 10)
+
+rm(perc.hab.plot, bold.hab.plot, bold.hab, perc.hab, label.position.hab.perc, label.position.hab.bold,bold.perc.habitat)
+```
+
+Over months & coyote seasons (figure as percentages; not included in final drafts)
+```{r}
+# making a data frame with percentages per month for BOLDNESS 
+bold.months = Coyotes %>%  filter(Bold!="Unknown", Bold!="Sighting")%>%
+  group_by(Month, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         Bold = recode(Bold, avoid = "Avoidance", indiff = "Indifferent", bold= "Bold", aggress = "Aggressive"),
+         Var = "Coyote Boldness", 
+         Month = as.factor(Month))
+
+# making a data frame with percentages of human perceptions per month
+perc.months = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(Month, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count)) %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")), 
+         Var = "Human Perception", 
+         Month = as.factor(Month)) %>%
+  mutate(Month = recode(Month, '1'="Jan", '2'="Feb", '3'="Mar", '4'="Apr", '5'="May", '6'="Jun", '7'="Jul", '8'="Aug", '9'="Sep", '10'="Oct", '11'="Nov", '12'="Dec"))
+
+
+# boldness plot PERCENTAGES 
+bold.months.plot = 
+  ggplot(bold.months, aes(x = Month, y = perc,  fill=Bold))+
+  geom_col()+ 
+  theme_bw()+
+    scale_fill_viridis("Coyote Boldness", discrete=TRUE, option = "inferno", direction = -1)+ 
+        ylab(NULL)+ 
+  scale_y_continuous(expand = c(0.01, 0.01)) + geom_vline(xintercept= c(4.5,8.5), linetype = 2)+
+  geom_text(aes(x=Month, y = rep(9, times = 48),  label=total), vjust=1, size = 6, color="white") + 
+  geom_text(label = "Breeding", x=2.5, y = 97, size = 5)+
+  geom_text(label = "Pup Rearing", x=6.55, y = 97, size = 5)+
+  geom_text(label = "Dispersal", x=10.5, y = 97, size = 5)+
+  theme(axis.title = element_text(size = 17),axis.text = element_text(size = 15),
+        axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank(),
+       legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        legend.position = "right") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+# Perceptions plot PERCENTAGES
+perc.months.plot = 
+  ggplot(perc.months, aes(x = Month, y = perc, fill=HumanPerception))+
+   geom_col() + 
+  theme_bw()+
+  scale_fill_viridis("Human Concern", discrete=TRUE, option = "magma", direction = -1)+ 
+  ylab(NULL)+ 
+  scale_y_continuous(expand = c(0.01, 0.01)) + geom_vline(xintercept= c(4.5,8.5), linetype = 2)+
+  geom_text(aes(x=Month, y = rep(9, times = 36),  label=total), vjust=1, size = 6, color="white") + 
+ # geom_text(label = "Breeding", x=2.5, y = 97, size = 5)+
+#  geom_text(label = "Pup Rearing", x=6.55, y = 97, size = 5)+
+#  geom_text(label = "Dispersal", x=10.5, y = 97, size = 5)+
+  theme(axis.title = element_text(size = 17), axis.text.x = element_text(size = 15, angle = 45, hjust = 1), 
+        axis.text.y=element_text(size = 15),
+        legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.ticks = element_blank(),
+        legend.position = "right") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+
+bold.perc.months = 
+ggdraw()+
+  draw_plot(bold.months.plot, x= 0.05, y = 0.58, width =.95, height =.42)+ 
+  draw_plot(perc.months.plot, x= 0.05, y = 0, width =.95, height =.58) + 
+   draw_plot_label(label = "Percentage of Classifiable Reports", x=0.04, y=0.25, size =20, color ="black",  
+                   fontface = "plain", angle = 90, hjust = 0, vjust = 0)
+
+
+    save_plot("Figures/bold.and.concern.over.months.plot.jpeg", bold.perc.months, base_width = 12, base_height= 8)
+
+rm(perc.months.plot, bold.months.plot, bold.months, perc.months, bold.perc.months)
+```
+
+Boldness & concern over diel scales (figure as percentage; not included in final drafts)
+```{r}
+bold.diurnal = Coyotes %>%  filter(Bold!="Unknown", Bold!="Sighting")%>%
+  group_by(NightDay, Bold) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count), 
+         Bold = recode(Bold, avoid = "Avoidance", indiff = "Indifferent", bold= "Bold", aggress = "Aggressive"))
+
+perc.diurnal = Coyotes %>% filter(HumanPerception !="Concern", HumanPerception!="Unknown")%>%
+  group_by(NightDay, HumanPerception) %>%
+  summarise(count=n())%>%
+  mutate(perc = count/sum(count)*100, 
+         total = sum(count)) %>%
+  mutate(HumanPerception = fct_relevel(HumanPerception, c("Positive", "Neutral", "Negative")))
+
+label.position.diurnal.bold = rep(99, times=12)
+label.position.diurnal.perc = rep(99, times=9)
+
+
+# boldness plot PERCENTAGES 
+bold.diurnal.plot = 
+  ggplot(bold.diurnal, aes(x = NightDay, y = perc,  fill=Bold))+
+  geom_col()+ 
+  theme_bw()+
+    scale_fill_viridis("Coyote Boldness", discrete=TRUE, option = "inferno", direction = -1)+ 
+        ylab(NULL)+ xlab(NULL)+
+  scale_y_continuous(expand = c(0.01, 0.01)) +
+  geom_text(aes(x=NightDay, y = label.position.diurnal.bold,  label=total), vjust=1, size = 6) + 
+  theme(axis.title = element_text(size = 20),axis.text = element_text(size = 15),
+        axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank(),
+       legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        legend.position = "right") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+# Perceptions plot PERCENTAGES
+perc.diurnal.plot = 
+  ggplot(perc.diurnal, aes(x = NightDay, y = perc, fill=HumanPerception))+
+   geom_col() + 
+  theme_bw()+
+  scale_fill_viridis("Human Concern", discrete=TRUE, option = "magma", direction = -1)+ 
+  ylab(NULL)+
+  geom_text(aes(x=NightDay, y = label.position.diurnal.perc,  label=total), vjust=1, size = 6) + 
+  scale_y_continuous(expand = c(0.01, 0.01)) + xlab(NULL)+
+  theme(axis.title = element_text(size = 20), axis.text.x = element_text(size = 15), 
+        axis.text.y=element_text(size = 15),
+        legend.title = element_text(size = 20), legend.text = element_text(size = 15), legend.key.size = unit(1, 'cm'), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        legend.position = "right") + 
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+
+bold.perc.nightday = 
+ggdraw()+
+  draw_plot(bold.diurnal.plot, x= 0.05, y = 0.58, width =.95, height =.42)+ 
+  draw_plot(perc.diurnal.plot, x= 0.05, y = 0, width =.95, height =.58) + 
+   draw_plot_label(label = "Percentage of Classifiable Reports", x=0.04, y=0.25, size =20, color ="black",  
+                   fontface = "plain", angle = 90, hjust = 0, vjust = 0)
+
+
+    save_plot("Figures/bold.and.concern.over.nightday.plot.jpeg", bold.perc.nightday, base_width = 8, base_height= 8)
+
+rm(perc.diurnal.plot, bold.diurnal.plot, bold.diurnal, perc.diurnal,label.position.diurnal.perc, label.position.diurnal.bold, bold.perc.nightday )
+
+```
+
+Boldness & Human concern across land cover types - Looking at chi square relationship and visualizing pearson's residuals. One figure (for coyote boldness only; not included in final drafts)
+```{r}
+# First, coyote boldness across land cover types
+bold.hab.table = table(Coyotes$Bold, Coyotes$Habitat) # make a table
+bold.hab.chsq = chisq.test(bold.hab.table[3:6,]) # chi square test - significant result
+bold.hab.chsq.resids = chisq.posthoc.test(bold.hab.table[3:6,], method = "holm") # run a posthoc test as this result was significant
+
+# formatting a new data frame
+bold.hab.chsq.resids.long = pivot_longer(bold.hab.chsq.resids, cols = c(Com100m, Mod100m, Mow100m, Nat100m, Res100m))
+bold.hab.chsq.resids.long = data.frame(Bold = subset(bold.hab.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Hab =  subset(bold.hab.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(bold.hab.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(bold.hab.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))), 
+         Bold = fct_relevel(Bold, "Avoidance", "Indifferent", "Bold", "Aggressive"), 
+         Hab = fct_relevel(Hab, "Com100m", "Res100m", "Mow100m", "Mod100m", "Nat100m"), 
+         Hab = recode(Hab, Com100m = "Commercial", Res100m = "Residential", Mow100m = "Mowed", Mod100m = "Modified Open", Nat100m = "Natural"))
+
+# plotting! 
+bold.hab.chsq.plot = 
+ggplot(bold.hab.chsq.resids.long, aes(y = Bold, x = Hab, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "white") + 
+ # scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
+    scale_fill_distiller("Pearson's\nResiduals",palette = "RdYlBu", na.value = "grey80", limits =c(-6,6), breaks=c(-6,0,6), labels=c(-6,0,6),  direction=1)+ 
+  xlab("Land Cover Type") + ylab("Coyote Boldness") + 
+ # scale_fill_viridis("Pearson's\nResiduals", option = "turbo", direction = -1,limits = c(-6,6)) + 
+  theme_bw() + 
+    scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "right", legend.text= element_text(size = 16),legend.title = element_text(size = 18),
+        axis.text = element_text(size = 16), axis.title = element_text(size = 18),
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank()) + 
+      guides(fill = guide_colourbar(ticks = FALSE))
+
+save_plot("Figures/bold.landcover.chsq.plot.plot.jpeg", bold.hab.chsq.plot, base_width = 10, base_height= 6)
+
+# Next, human concern across land cover types
+perc.hab.table = table(Coyotes$HumanPerception, Coyotes$Habitat) # make a table
+perc.hab.chsq = chisq.test(perc.hab.table[2:4,]) # Not a significant result - therefore do not visualize pearson's residuals or continue with this analysis 
+
+
+
+rm(bold.hab.table, bold.hab.chsq, bold.hab.chsq.resids, bold.hab.chsq.resids.long, bold.hab.chsq.plot, perc.hab.table, perc.hab.chsq)
+```
+
+Ordinal regressions for contextual variables over time (not included in final drafts)
+```{r}
+
+# BOLDNESS and context
+
+bold.model.act = clm(Bold ~ Act*Year, 
+                      data = bold.data.modelling, na.action = "na.fail")
+summary(bold.model.act)
+
+bold.model.vul = clm(Bold ~ Vul*Year, 
+                     data = bold.data.modelling, na.action = "na.fail")
+summary(bold.model.vul)
+
+bold.model.num = clm(Bold ~ Num*Year, 
+                      data = bold.data.modelling, na.action = "na.fail")
+summary(bold.model.num)
+
+bold.model.health = clm(Bold ~ Health*Year, 
+                      data = bold.data.modelling, na.action = "na.fail")
+summary(bold.model.health)
+
+# CONCERN and context
+
+perc.model.act = clm(HumanPerception ~ Act*Year, 
+                      data = perc.data.modelling, na.action = "na.fail")
+summary(perc.model.act)
+
+perc.model.vul = clm(HumanPerception ~ Vul*Year, 
+                     data = perc.data.modelling, na.action = "na.fail")
+summary(perc.model.vul)
+
+perc.model.num = clm(HumanPerception ~ Num*Year, 
+                      data = perc.data.modelling, na.action = "na.fail")
+summary(perc.model.num)
+
+perc.model.health = clm(HumanPerception ~ Health*Year, 
+                      data = perc.data.modelling, na.action = "na.fail")
+summary(perc.model.health)
+
+
+
+
+
+```
+
+Figures looking at correlations between season and contextual variables
+
+Season and human activity
+```{r}
+szn.act.table = table(Coyotes$Season, Coyotes$HumanActivity) # make a table
+
+szn.act.chsq = chisq.test(szn.act.table) # run a chi square test
+szn.act.chsq$expected # need to remove cycling and outdoor activity because expected chi square is less than 5
+
+szn.act.chsq.resids = chisq.posthoc.test(szn.act.table, method = "holm") # run a posthoc test
+
+# formatting a new data frame
+szn.act.chsq.resids.long = pivot_longer(szn.act.chsq.resids, cols = c(Driving, Cycling, HomeYard, Unknown, Walking, OutdoorAct))
+szn.act.chsq.resids.long = data.frame(Season = subset(szn.act.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Act =  subset(szn.act.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(szn.act.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(szn.act.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Act = fct_relevel(Act,  "Driving", "Cycling", "HomeYard", "Walking","OutdoorAct", "Unknown")) 
+
+szn.act.chsq.resids.long$Season = fct_relevel(szn.act.chsq.resids.long$Season, 
+                                            "Dispersal", "PupRearing", "Breeding")
+
+# plotting!
+szn.act.chsq.plot=
+ggplot(szn.act.chsq.resids.long, aes(x = Act, y = Season, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + 
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-7,7), breaks=c(-7,0,7), labels=c(-7, 0,7),  direction=-1)+ 
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-6,6)) +
+  ylab("Season") + xlab("Human Activity") + 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 18, angle = 35, hjust = 1), axis.title= element_text(size = 20),
+        axis.text.y = element_text(size = 18))
+
+rm(szn.act.table, szn.act.chsq, szn.act.chsq.resids, szn.act.chsq.resids.long)
+```
+
+Season and  vulnerable individuals
+```{r}
+szn.vul.table = table(Coyotes$Season, Coyotes$VulnerableIndividual) # make a table
+
+szn.vul.chsq = chisq.test(szn.vul.table) # run a chi square test
+
+szn.vul.chsq.resids = chisq.posthoc.test(szn.vul.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+szn.vul.chsq.resids.long = pivot_longer(szn.vul.chsq.resids, cols = c(Cat, Child, Dog, Multiple, Unknown))
+szn.vul.chsq.resids.long = data.frame(Season = subset(szn.vul.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Vul =  subset(szn.vul.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(szn.vul.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(szn.vul.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))))
+
+
+szn.vul.chsq.resids.long$Season = fct_relevel(szn.vul.chsq.resids.long$Season, 
+                                            "Dispersal", "PupRearing", "Breeding")
+# plotting! 
+szn.vul.chsq.plot =
+ggplot(szn.vul.chsq.resids.long, aes(x = Vul, y = Season, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color = "grey30") + 
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-7,7), breaks=c(-7,0,7), labels=c(-7, 0,7),  direction=-1)+ 
+#  scale_fill_viridis(option = "turbo", direction = -1,limits = c(-7,7)) +
+  ylab(NULL)+ xlab("Vulnerable Individuals")+
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none",
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(),        
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1), axis.title.x= element_text(size = 20))
+
+
+rm(szn.vul.table, szn.vul.chsq, szn.vul.chsq.resids, szn.vul.chsq.resids.long)
+
+```
+
+Season and dog leash stat
+```{r}
+szn.leash.table =Coyotes %>% filter(VulnerableIndividual =="Dog" | VulnerableIndividual =="Multiple")
+
+szn.leash.table = table(szn.leash.table$Season, szn.leash.table$DogPresent) # make a table
+
+szn.leash.chsq = chisq.test(szn.leash.table[,2:4]) # run a chi square test
+
+szn.leash.chsq.resids = chisq.posthoc.test(szn.leash.table[,2:4], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+szn.leash.chsq.resids.long = pivot_longer(szn.leash.chsq.resids, cols = c(Leashed, OffLeash, Unknown))
+szn.leash.chsq.resids.long = data.frame(Season = subset(szn.leash.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Leash =  subset(szn.leash.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(szn.leash.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(szn.leash.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))))
+
+szn.leash.chsq.resids.long$Season = fct_relevel(szn.leash.chsq.resids.long$Season, 
+                                            "Dispersal", "PupRearing", "Breeding")
+# plotting! 
+szn.leash.chsq.plot=
+  ggplot(szn.leash.chsq.resids.long, aes(x = Leash, y = Season, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + ylab(NULL) + xlab("Dog Status")+
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-7,7), breaks=c(-7,0,7), labels=c(-7, 0,7),  direction=-1)+ 
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-7,7)) + theme_bw() +     
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none",
+        axis.text.x = element_text(size = 18, angle = 40, hjust = 1), axis.title.x= element_text(size = 20))
+
+rm(szn.leash.chsq.resids.long, szn.leash.chsq.resids, szn.leash.chsq, szn.leash.table)
+```
+
+Season and  number of coyotes
+```{r}
+szn.num.table = table(Coyotes$Season, Coyotes$CoyoteNumber) # make a table
+
+szn.num.chsq = chisq.test(szn.num.table) # run a chi square test
+
+szn.num.chsq.resids = chisq.posthoc.test(szn.num.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+szn.num.chsq.resids.long = pivot_longer(szn.num.chsq.resids, cols = c(More, One, Two, Three, Unknown))
+szn.num.chsq.resids.long = data.frame(Season = subset(szn.num.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Num =  subset(szn.num.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(szn.num.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(szn.num.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Num  = fct_relevel(Num, "One", "Two", "Three", "More", "Unknown"))
+
+szn.num.chsq.resids.long$Season = fct_relevel(szn.num.chsq.resids.long$Season, 
+                                            "Dispersal", "PupRearing", "Breeding")
+
+# plotting! 
+szn.num.chsq.plot = 
+  ggplot(szn.num.chsq.resids.long, aes(x = Num, y = Season, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8,color="grey30") +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-7,7), breaks=c(-7,0,7), labels=c(-7, 0,7),  direction=-1)+ 
+ #  scale_fill_viridis(option = "turbo", direction = -1,limits = c(-7,7)) + 
+  ylab(NULL)+ xlab("Coyote Number")+ 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none",
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+                axis.text.x = element_text(size = 18, angle = 45, hjust = 1), axis.title.x= element_text(size = 20))
+
+rm(szn.num.chsq.resids.long, szn.num.chsq.resids, szn.num.chsq, szn.num.table)
+
+```
+
+Season and  coyote health
+```{r}
+szn.health.table = table(Coyotes$Season, Coyotes$Health) # make a table
+
+szn.health.chsq = chisq.test(szn.health.table) # run a chi square test
+
+szn.health.chsq.resids = chisq.posthoc.test(szn.health.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+szn.health.chsq.long = pivot_longer(szn.health.chsq.resids, cols = c(Healthy, Unhealthy, Unknown))
+szn.health.chsq.long = data.frame(Season = subset(szn.health.chsq.long, Value =="Residuals")$Dimension,
+                                       Health =  subset(szn.health.chsq.long, Value =="Residuals")$name, 
+                                       Resids = subset(szn.health.chsq.long, Value =="Residuals")$value, 
+                                       Pval = subset(szn.health.chsq.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Health  = fct_relevel(Health, "Healthy", "Unhealthy", "Unknown"))
+
+szn.health.chsq.long$Season = fct_relevel(szn.health.chsq.long$Season, 
+                                            "Dispersal", "PupRearing", "Breeding")
+
+# plotting! 
+szn.health.chsq.plot=
+  ggplot(szn.health.chsq.long, aes(x = Health, y = Season, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + ylab(NULL) + xlab("Coyote Health")+
+  scale_fill_distiller("Pearson's\nResiduals",palette = "RdYlBu", na.value = "grey80", limits =c(-7,7), breaks=c(-7,0,7), labels=c(-7, 0,7),  direction=-1)+ 
+  # scale_fill_viridis("Pearson's\nResiduals", option = "turbo", direction = -1, limits = c(-7,7)) + 
+  theme_bw() +
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(1.75,'cm'), legend.position = "right",
+        axis.text.x = element_text(size = 18, angle = 40, hjust = 1), axis.title.x= element_text(size = 20))+ 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(szn.health.chsq.long, szn.health.chsq.resids, szn.health.chsq, szn.health.table)
+
+```
+
+now create supplementary figure comparing contextual vars and season
+```{r}
+season.contextual.plot = 
+ggdraw()+
+  draw_plot(szn.act.chsq.plot, x= 0, y = 0, width =0.3, height =1)+ 
+  draw_plot(szn.vul.chsq.plot, x= 0.3, y = 0, width =0.2, height =1) +
+  draw_plot(szn.leash.chsq.plot, x= 0.5, y = 0, width =0.15, height =1) +
+  draw_plot(szn.num.chsq.plot, x= 0.65, y = 0, width =0.15, height =1) +
+  draw_plot(szn.health.chsq.plot, x= 0.8, y = 0, width =0.2, height =1) +
+  draw_plot_label(label = "A.", x=0.09, y=0.985, size =25, color ="black")+
+  draw_plot_label(label = "B.", x=0.302, y=0.985, size =25, color ="black")+
+  draw_plot_label(label = "C.", x=0.502, y=0.985, size =25, color ="black")+
+  draw_plot_label(label = "D.", x=0.65, y=0.985, size =25, color ="black") +
+  draw_plot_label(label = "E.", x=0.805, y=0.985, size =25, color ="black")
+
+save_plot("Figures/season.context.plot.jpeg", season.contextual.plot, base_width = 20, base_height= 6)
+
+rm(szn.act.chsq.plot, szn.vul.chsq.plot, szn.leash.chsq.plot, szn.num.chsq.plot, szn.health.chsq.plot)
+```
+
+Figures looking at correlations between land cover and contextual variables
+
+Land cover and human activity
+```{r}
+hab.act.table = table(Coyotes$Habitat, Coyotes$HumanActivity) # make a table
+
+hab.act.chsq = chisq.test(hab.act.table) # run a chi square test
+hab.act.chsq$expected # need to remove cycling and outdoor activity because expected chi square is less than 5
+
+hab.act.chsq.resids = chisq.posthoc.test(hab.act.table, method = "holm") # run a posthoc test
+
+# formatting a new data frame
+hab.act.chsq.resids.long = pivot_longer(hab.act.chsq.resids, cols = c(Driving, Cycling, HomeYard, Unknown, Walking, OutdoorAct))
+hab.act.chsq.resids.long = data.frame(Hab = subset(hab.act.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Act =  subset(hab.act.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(hab.act.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(hab.act.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+        Hab = recode(Hab, Com100m = "Commercial", Res100m = "Residential", Mod100m = "Modified Open", Mow100m = "Mowed",
+                     Nat100m = "Natural"), 
+         Act = fct_relevel(Act,  "Driving", "Cycling", "HomeYard", "Walking","OutdoorAct", "Unknown")) 
+
+hab.act.chsq.resids.long$Hab = fct_relevel(hab.act.chsq.resids.long$Hab, 
+                                            "Commercial", "Residential", "Mowed", "Modified Open","Natural")
+
+# plotting!
+hab.act.chsq.plot=
+ggplot(hab.act.chsq.resids.long, aes(x = Act, y = Hab, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + 
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-12,20)) +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-12,20), breaks=c(-12,0,20), labels=c(-12, 0,20),  direction=-1)+ 
+  ylab("Land Cover Type") + xlab("Human Activity") + 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 18, angle = 35, hjust = 1), axis.title= element_text(size = 20),
+        axis.text.y = element_text(size = 18))
+
+rm(hab.act.table, hab.act.chsq, hab.act.chsq.resids, hab.act.chsq.resids.long)
+
+```
+
+Land cover and  vulnerable individuals
+```{r}
+hab.vul.table = table(Coyotes$Habitat, Coyotes$VulnerableIndividual) # make a table
+
+hab.vul.chsq = chisq.test(hab.vul.table) # run a chi square test
+
+hab.vul.chsq.resids = chisq.posthoc.test(hab.vul.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+hab.vul.chsq.resids.long = pivot_longer(hab.vul.chsq.resids, cols = c(Cat, Child, Dog, Multiple, Unknown))
+hab.vul.chsq.resids.long = data.frame(Hab = subset(hab.vul.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Vul =  subset(hab.vul.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(hab.vul.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(hab.vul.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Hab = recode(Hab, Com100m = "Commercial", Res100m = "Residential", Mod100m = "Modified Open",
+                      Mow100m = "Mowed", Nat100m = "Natural"), ) 
+
+hab.vul.chsq.resids.long$Hab = fct_relevel(hab.vul.chsq.resids.long$Hab, 
+                                            "Commercial", "Residential", "Mowed", "Modified Open","Natural")
+
+# plotting! 
+hab.vul.chsq.plot =
+ggplot(hab.vul.chsq.resids.long, aes(x = Vul, y = Hab, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color = "grey30") + 
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-12,20)) +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-12,20), breaks=c(-12,0,20), labels=c(-12, 0,20),  direction=-1)+   ylab(NULL)+ xlab("Vulnerable Individuals")+
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none",
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(),        
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1), axis.title.x= element_text(size = 20))
+
+rm(hab.vul.table, hab.vul.chsq, hab.vul.chsq.resids, hab.vul.chsq.resids.long)
+
+```
+
+Land cover and dog leash stat
+```{r}
+hab.leash.table = Coyotes %>% filter(VulnerableIndividual =="Dog" | VulnerableIndividual =="Multiple")
+
+hab.leash.table = table(hab.leash.table$Habitat, hab.leash.table$DogPresent) # make a table
+
+hab.leash.chsq = chisq.test(hab.leash.table[,2:4]) # run a chi square test
+
+hab.leash.chsq.resids = chisq.posthoc.test(hab.leash.table[,2:4], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+hab.leash.chsq.resids.long = pivot_longer(hab.leash.chsq.resids, cols = c(Leashed, OffLeash, Unknown))
+hab.leash.chsq.resids.long = data.frame(Hab = subset(hab.leash.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Leash =  subset(hab.leash.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(hab.leash.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(hab.leash.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Hab = recode(Hab, Com100m = "Commercial", Res100m = "Residential", Mod100m = "Modified Open",
+                      Mow100m = "Mowed", Nat100m = "Natural")) 
+
+hab.leash.chsq.resids.long$Hab = fct_relevel(hab.leash.chsq.resids.long$Hab, 
+                                            "Commercial", "Residential", "Mowed", "Modified Open","Natural")
+
+# plotting! 
+hab.leash.chsq.plot=
+  ggplot(hab.leash.chsq.resids.long, aes(x = Leash, y = Hab, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + ylab(NULL) + xlab("Dog Status")+
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-12,20)) +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-12,20), breaks=c(-12,0,20), labels=c(-12, 0,20),  direction=-1)+ 
+  theme_bw() +     
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none",
+        axis.text.x = element_text(size = 18, angle = 40, hjust = 1), axis.title.x= element_text(size = 20))
+
+rm(hab.leash.table, hab.leash.chsq, hab.leash.chsq.resids, hab.leash.chsq.resids.long)
+
+```
+
+Land cover and  number of coyotes
+```{r}
+hab.num.table = table(Coyotes$Habitat, Coyotes$CoyoteNumber) # make a table
+
+hab.num.chsq = chisq.test(hab.num.table) # run a chi square test
+
+hab.num.chsq.resids = chisq.posthoc.test(hab.num.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+hab.num.chsq.resids.long = pivot_longer(hab.num.chsq.resids, cols = c(More, One, Two, Three, Unknown))
+hab.num.chsq.resids.long = data.frame(Hab = subset(hab.num.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Num =  subset(hab.num.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(hab.num.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(hab.num.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Num  = fct_relevel(Num, "One", "Two", "Three", "More", "Unknown"),
+         Hab = recode(Hab, Com100m = "Commercial", Res100m = "Residential", Mod100m = "Modified Open",
+                      Mow100m = "Mowed", Nat100m = "Natural")) 
+
+hab.num.chsq.resids.long$Hab = fct_relevel(hab.num.chsq.resids.long$Hab, 
+                                            "Commercial", "Residential", "Mowed", "Modified Open","Natural")
+
+# plotting! 
+hab.num.chsq.plot = 
+  ggplot(hab.num.chsq.resids.long, aes(x = Num, y = Hab, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8,color="grey30") +
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-12,20)) +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-12,20), breaks=c(-12,0,20), labels=c(-12, 0,20),  direction=-1)+   ylab(NULL)+ xlab("Coyote Number")+ 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "none",
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+                axis.text.x = element_text(size = 18, angle = 45, hjust = 1), axis.title.x= element_text(size = 20))
+
+rm(hab.num.table, hab.num.chsq, hab.num.chsq.resids, hab.num.chsq.resids.long)
+
+```
+
+Land cover and  coyote health
+```{r}
+hab.health.table = table(Coyotes$Habitat, Coyotes$Health) # make a table
+
+hab.health.chsq = chisq.test(hab.health.table) # run a chi square test
+
+hab.health.chsq.resids = chisq.posthoc.test(hab.health.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+hab.health.chsq.resids.long = pivot_longer(hab.health.chsq.resids, cols = c(Healthy, Unhealthy, Unknown))
+hab.health.chsq.resids.long = data.frame(Hab = subset(hab.health.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Health =  subset(hab.health.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(hab.health.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(hab.health.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Health  = fct_relevel(Health, "Healthy", "Unhealthy", "Unknown"), 
+         Hab = recode(Hab, Com100m = "Commercial", Res100m = "Residential", Mod100m = "Modified Open",
+                      Mow100m = "Mowed", Nat100m = "Natural")) 
+
+hab.health.chsq.resids.long$Hab = fct_relevel(hab.health.chsq.resids.long$Hab, 
+                                            "Commercial", "Residential", "Mowed", "Modified Open","Natural")
+
+# plotting! 
+hab.health.chsq.plot=
+  ggplot(hab.health.chsq.resids.long, aes(x = Health, y = Hab, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + ylab(NULL) + xlab("Coyote Health")+
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-12,20)) +
+  scale_fill_distiller("Pearson's\nResiduals",palette = "RdYlBu", na.value = "grey80", limits =c(-12,20), breaks=c(-12,0,20), labels=c(-12, 0,20),  direction=-1)+   theme_bw() +
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(1.75,'cm'), legend.position = "right",
+        axis.text.x = element_text(size = 18, angle = 40, hjust = 1), axis.title.x= element_text(size = 20))+ 
+    guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(hab.health.table, hab.health.chsq, hab.health.chsq.resids, hab.health.chsq.resids.long)
+
+```
+
+now create supplementary figure comparing contextual vars and habitat
+```{r}
+land.cover.context.plot =   
+ggdraw()+
+  draw_plot(hab.act.chsq.plot, x= 0, y = 0, width =0.3, height =1)+ 
+  draw_plot(hab.vul.chsq.plot, x= 0.3, y = 0, width =0.2, height =1) +
+  draw_plot(hab.leash.chsq.plot, x= 0.5, y = 0, width =0.15, height =1) +
+  draw_plot(hab.num.chsq.plot, x= 0.65, y = 0, width =0.15, height =1) +
+  draw_plot(hab.health.chsq.plot, x= 0.8, y = 0, width =0.2, height =1) +
+  draw_plot_label(label = "A.", x=0.1, y=0.985, size =25, color ="black")+
+  draw_plot_label(label = "B.", x=0.305, y=0.985, size =25, color ="black")+
+  draw_plot_label(label = "C.", x=0.505, y=0.985, size =25, color ="black")+
+  draw_plot_label(label = "D.", x=0.655, y=0.985, size =25, color ="black") +
+  draw_plot_label(label = "E.", x=0.805, y=0.985, size =25, color ="black")
+
+save_plot("Figures/land.cover.context.plot.jpeg", land.cover.context.plot, base_width = 20, base_height= 7)
+
+rm(hab.act.chsq.plot, hab.vul.chsq.plot, hab.num.chsq.plot, hab.leash.chsq.plot, hab.health.chsq.plot)
+```
+
+
+#### Figures examining correlations between Year and contextual variables
+
+YEAR and human activity
+```{r}
+yr.act.table = table(as.factor(Coyotes$Year), Coyotes$HumanActivity) # make a table
+
+yr.act.chsq = chisq.test(yr.act.table[,2:6]) # run a chi square test
+yr.act.chsq$expected # need to remove cycling  because expected chi square is less than 5
+
+yr.act.chsq.resids = chisq.posthoc.test(yr.act.table[,2:6], method = "holm") # run a posthoc test
+
+# formatting a new data frame
+yr.act.chsq.resids.long = pivot_longer(yr.act.chsq.resids, cols = c(Driving, HomeYard, Unknown, Walking, OutdoorAct))
+yr.act.chsq.resids.long = data.frame(Year = subset(yr.act.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Act =  subset(yr.act.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(yr.act.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(yr.act.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Act = fct_relevel(Act,  "Driving", "HomeYard", "Walking","OutdoorAct", "Unknown")) 
+
+
+
+# plotting!
+yr.act.chsq.plot=
+ggplot(yr.act.chsq.resids.long, aes(x = Year, y = Act, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + 
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-6,6), breaks=c(-6,0,6), labels=c(-6, 0,6),  direction=-1)+ 
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-6,6)) +
+  xlab(NULL) + ylab("Human Activity") + 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+    theme(legend.position = "right",
+        axis.text.x = element_blank(), axis.title.y= element_text(size = 20),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(1.3,'cm'))+ 
+        guides(fill = guide_colourbar(ticks = FALSE))
+rm(yr.act.table, yr.act.chsq, yr.act.chsq.resids, yr.act.chsq.resids.long)
+```
+
+Year and  vulnerable individuals
+```{r}
+yr.vul.table = table(as.factor(Coyotes$Year), Coyotes$VulnerableIndividual) # make a table
+
+yr.vul.chsq = chisq.test(yr.vul.table) # run a chi square test
+
+yr.vul.chsq.resids = chisq.posthoc.test(yr.vul.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+yr.vul.chsq.resids.long = pivot_longer(yr.vul.chsq.resids, cols = c(Cat, Child, Dog, Multiple, Unknown))
+yr.vul.chsq.resids.long = data.frame(Year = subset(yr.vul.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Vul =  subset(yr.vul.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(yr.vul.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(yr.vul.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))))
+
+# plotting! 
+yr.vul.chsq.plot =
+ggplot(yr.vul.chsq.resids.long, aes(y = Vul, x = Year, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color = "grey30") + 
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-5,5), breaks=c(-5,0,5), labels=c(-5, 0,5),  direction=-1)+ 
+#  scale_fill_viridis(option = "turbo", direction = -1,limits = c(-7,7)) +
+  xlab(NULL)+ ylab("Vulnerable Individuals")+
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "right",
+        axis.text.x = element_blank(), axis.title.y= element_text(size = 20),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(1.3,'cm'))+ 
+        guides(fill = guide_colourbar(ticks = FALSE))
+
+
+rm(yr.vul.table, yr.vul.chsq, yr.vul.chsq.resids, yr.vul.chsq.resids.long)
+
+```
+
+Year and dog leash stat
+```{r}
+yr.leash.table =Coyotes %>% filter(VulnerableIndividual =="Dog" | VulnerableIndividual =="Multiple")
+
+yr.leash.table = table(as.factor(yr.leash.table$Year), yr.leash.table$DogPresent) # make a table
+
+yr.leash.chsq = chisq.test(yr.leash.table[,2:3]) # run a chi square test
+
+yr.leash.chsq.resids = chisq.posthoc.test(yr.leash.table[,2:4], method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+yr.leash.chsq.resids.long = pivot_longer(yr.leash.chsq.resids, cols = c(Leashed, OffLeash, Unknown))
+yr.leash.chsq.resids.long = data.frame(Year = subset(yr.leash.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Leash =  subset(yr.leash.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(yr.leash.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(yr.leash.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))))
+
+# plotting! 
+yr.leash.chsq.plot=
+  ggplot(yr.leash.chsq.resids.long, aes(x = Year, y = Leash, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + ylab("Dog Status") +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-4,4), breaks=c(-4,0,4), labels=c(-4, 0,4),  direction=-1)+ 
+ # scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-7,7)) + theme_bw() +     
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  xlab(NULL)+
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+    theme(legend.position = "right",
+        axis.text.x = element_blank(), axis.title.y= element_text(size = 20),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(1,'cm'))+ 
+        guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(yr.leash.chsq.resids.long, yr.leash.chsq.resids, yr.leash.chsq, yr.leash.table)
+```
+
+Year and  number of coyotes
+```{r}
+yr.num.table = table(as.factor(Coyotes$Year), Coyotes$CoyoteNumber) # make a table
+
+yr.num.chsq = chisq.test(yr.num.table) # run a chi square test
+
+yr.num.chsq.resids = chisq.posthoc.test(yr.num.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+yr.num.chsq.resids.long = pivot_longer(yr.num.chsq.resids, cols = c(More, One, Two, Three, Unknown))
+yr.num.chsq.resids.long = data.frame(Year = subset(yr.num.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Num =  subset(yr.num.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(yr.num.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(yr.num.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Num  = fct_relevel(Num, "One", "Two", "Three", "More", "Unknown"))
+
+# plotting! 
+yr.num.chsq.plot = 
+  ggplot(yr.num.chsq.resids.long, aes(x = Year, y = Num, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8,color="grey30") +
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-6,6), breaks=c(-6,0,6), labels=c(-6, 0,6),  direction=-1)+ 
+ #  scale_fill_viridis(option = "turbo", direction = -1,limits = c(-7,7)) + 
+  xlab(NULL)+ ylab("Coyote Number")+ 
+  theme_bw()+   
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+    theme(legend.position = "right",
+        axis.text.x = element_blank(), axis.title.y= element_text(size = 20),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(1.3,'cm'))+ 
+        guides(fill = guide_colourbar(ticks = FALSE))
+
+
+rm(yr.num.chsq.resids.long, yr.num.chsq.resids, yr.num.chsq, yr.num.table)
+
+```
+
+Year and  coyote health
+```{r}
+yr.health.table = table(as.factor(Coyotes$Year), Coyotes$Health) # make a table
+
+yr.health.chsq = chisq.test(yr.health.table) # run a chi square test
+
+yr.health.chsq.resids = chisq.posthoc.test(yr.health.table, method = "holm") # run a posthoc test
+
+
+# formatting a new data frame
+yr.health.chsq.resids.long = pivot_longer(yr.health.chsq.resids, cols = c(Healthy, Unhealthy, Unknown))
+yr.health.chsq.resids.long = data.frame(Year = subset(yr.health.chsq.resids.long, Value =="Residuals")$Dimension,
+                                       Health =  subset(yr.health.chsq.resids.long, Value =="Residuals")$name, 
+                                       Resids = subset(yr.health.chsq.resids.long, Value =="Residuals")$value, 
+                                       Pval = subset(yr.health.chsq.resids.long, Value =="p values")$value) %>%
+  mutate(sig = ifelse(Pval < 0.001, "***", ifelse(Pval < 0.01, "**", ifelse(Pval < 0.05, "*", "" ))),
+         Health  = fct_relevel(Health, "Healthy", "Unhealthy", "Unknown"))
+
+# plotting! 
+yr.health.chsq.plot=
+  ggplot(yr.health.chsq.resids.long, aes(x = Year, y = Health, fill = Resids)) +
+  geom_tile() + geom_text(aes(label = sig), size = 8, color="grey30") + ylab("Coyote Health") + xlab("Year")+
+  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-6,6), breaks=c(-6,0,6), labels=c(-6, 0,6),  direction=-1)+ 
+  # scale_fill_viridis("Pearson's\nResiduals", option = "turbo", direction = -1, limits = c(-7,7)) + 
+  theme_bw() +
+  scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
+  theme(legend.position = "right",
+        axis.text.x = element_text(size = 18, angle = 35, hjust = 1), axis.title= element_text(size = 20),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 18), legend.title = element_text(size = 20), 
+        legend.key.height = unit(0.5,'cm'))+ 
+        guides(fill = guide_colourbar(ticks = FALSE))
+
+rm(yr.health.chsq.resids.long, yr.health.chsq.resids, yr.health.chsq, yr.health.table)
+
+```
+
+now create supplementary figure comparing contextual vars and year
+```{r}
+yr.contextual.plot = 
+ggdraw()+
+  draw_plot(yr.health.chsq.plot, x= 0.02, y = 0, width =0.98, height =.15)+ 
+  draw_plot(yr.num.chsq.plot, x= 0.02, y = 0.15, width =0.98, height =.2) +
+  draw_plot(yr.leash.chsq.plot, x= 0.02, y = 0.35, width =0.98, height =.18) +
+  draw_plot(yr.vul.chsq.plot, x= 0.02, y = 0.53, width =0.98, height =.22) +
+  draw_plot(yr.act.chsq.plot, x= 0.0, y = 0.75, width =1, height =0.25)
+
+
+save_plot("Figures/yr.contextual.plot.jpeg", yr.contextual.plot, base_width = 10, base_height= 18)
+
+rm(yr.health.chsq.plot, yr.num.chsq.plot, yr.leash.chsq.plot, yr.vul.chsq.plot, yr.act.chsq.plot)
+```
+
+
