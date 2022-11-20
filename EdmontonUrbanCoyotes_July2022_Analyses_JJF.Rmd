@@ -132,7 +132,7 @@ Coyotes = Coyote_Data %>%
 # adding a variable with assigned habitat type, based on the habitat with the greaters % cover within 200m
 Coyotes$Habitat  = as.factor(colnames(Coyotes[,c("Mod100m", "Res100m", "Mow100m", "Nat100m", "Com100m")])[apply(Coyotes[,c("Mod100m", "Res100m", "Mow100m", "Nat100m", "Com100m")],1,which.max)])
 
-rm(Coyote_Data)
+#rm(Coyote_Data)
 ```
 
 # Main Figures & Tables
@@ -197,9 +197,12 @@ hab.plot =
         legend.position = "none") + 
   guides(fill = guide_legend(title.position = "top", title.hjust = 0))
 
-save_plot("Figures/MS_Figs/Habitat.reporting.patterns.jpg", hab.plot, base_width = 3.2, base_height= 8)
+hab.plot
+hab.chsq
 
-rm(hab.expected, hab.totals, hab.observed, hab.plot, table.hab, hab.chsq, hab.chsq.resids)
+save_plot("Figures/Habitat.reporting.patterns.jpeg", hab.plot, base_width = 3.2, base_height= 8)
+
+rm(hab.expected, hab.totals, hab.observed, hab.plot, table.hab, hab.chsq)
 
 ```
 
@@ -296,8 +299,9 @@ reporting.patterns =
   draw_plot(reporting.years.plot, x= 0.03, y = 0.5, width =.65, height =.5) + draw_plot_label(label = "A.", x=-0, y=0.95, size = 30)+
   draw_plot(reporting.month.plot, x= 0.03, y = 0, width =.65, height =.5) + draw_plot_label(label = "B.", x=0, y=0.55, size = 30)
 
+reporting.patterns
 
-save_plot("Figures/MS_Figs/Temporal.reporting.patterns.jpg", reporting.patterns, base_width = 12, base_height= 8)
+save_plot("Figures/Temporal.reporting.patterns.jpeg", reporting.patterns, base_width = 12, base_height= 8)
 
 
 rm(reporting.diurnal.plot, reporting.years.plot, reporting.month.plot, reporting.patterns)
@@ -381,18 +385,17 @@ ggplot(context.reports, aes(y=Categories, x=perc, fill = Variable)) +
         axis.text.y = element_blank(), axis.ticks.y = element_blank(), axis.line.y=element_blank(), axis.title.y=element_blank())+
   facet_grid(Variable~., scale ="free_y", space="free_y")
 
-save_plot("Figures/MS_Figs/distribution_of_reports_across_contextual_vars.jpeg", context.plot.trends, base_width = 6, base_height= 6)
+save_plot("Figures/distribution_of_reports_across_contextual_vars.jpeg", context.plot.trends, base_width = 6, base_height= 6)
 
 write.csv(context.reports,"Output_Tables/report_distrib_across_contexutal_vars.csv") # write that csv!
 
 
-rm(act.reports, vul.reports, leash.reports, num.reports, health.reports, context.plot.trends, context.reports)
+rm(act.reports, vul.reports, leash.reports, num.reports, health.reports)
 
 ```
 
 ## Table 2. Reports within each of the coyote boldness
 ```{r}
-# writing the output table with percentages
 Coyotes %>% 
   group_by(CoyoteResponse) %>%
   summarise(count=n()) %>%
@@ -408,7 +411,6 @@ nrow(Coyotes%>%filter(VulnerableIndividual == "Unknown", CoyoteResponse =="9"))
 
 ## Table 3. Reports within each of the human concern categories 
 ```{r}
-# writing the output table with percentages
 Coyotes %>%  
   group_by(HumanPerception) %>%
   summarise(count=n()) %>%
@@ -443,7 +445,7 @@ bold.per.chsq.resids.long = data.frame(HumanConcern = subset(bold.per.chsq.resid
 bold.per.chsq.plot=
 ggplot(bold.per.chsq.resids.long, aes(x = HumanConcern, y = Bold, fill = Resids)) +
   geom_tile() + geom_text(aes(label = sig), size = 8, color="white") + 
-  scale_fill_distiller("Pearson's Residuals",palette = "RdYlBu", na.value = "grey80", 
+  scale_fill_viridis("Pearson's Residuals",option = "rocket", na.value = "grey80", 
                        limits =c(-5,5), breaks = c(-5,0,5), labels = c(-5, 0, 5), direction=-1)+ 
   ylab("Coyote Boldness") + xlab("Human Concern") + 
   theme_bw()+   
@@ -456,12 +458,12 @@ ggplot(bold.per.chsq.resids.long, aes(x = HumanConcern, y = Bold, fill = Resids)
 bold.concern.plot = 
   ggdraw()+
   draw_plot(bold.per.chsq.plot, x= 0, y = 0, height =1, width =.9)+
-  draw_plot_label(label = "Pearson's Residuals", x=0.93, y=0.3, size =16, color ="black",  fontface = "plain",
+  draw_plot_label(label = "Pearson's Residuals", x=0.93, y=0.25, size =16, color ="black",  fontface = "plain",
  angle = 90, hjust = 0, vjust = 0)
 
-    save_plot("Figures/MS_Figs/correlation.between.bold.concern.jpeg", bold.concern.plot, base_width = 6.5, base_height= 4)
+    save_plot("Figures/correlation.between.bold.concern.Nov202022.jpeg", bold.concern.plot, base_width = 6.5, base_height= 3)
 
-    rm(bold.per.chsq.plot, bold.per.table, bold.per.chsq,bold.per.chsq.resids, bold.per.chsq.resids.long, bold.concern.plot)
+    rm(bold.per.chsq.plot, bold.per.table, bold.per.chsq,bold.per.chsq.resids, bold.per.chsq.resids.long)
 ```
 
 ## Figure 5. Ordinal Regression top model outputs displayed in graphical format
@@ -541,13 +543,13 @@ bold.scale.model.outputs <- dplyr::bind_rows(bold.scale_models)
 write.csv(bold.scale.model.outputs, "Output_Tables/coyote_boldness_univariate_scale_mods.csv") # write csv 
 
 
-rm(bold.scale_models, bold.scale.model.outputs, null, i, j)
+rm(bold.scale_models, bold.scale.model.outputs, null)
 
 ```
 
 #### (Appendix 3 Table A3.3) Fourth, we evaluate correlations between our variables using R-squared tests. Strong correlations between building density/road dist decay and Res100m. So, because res100m has the bigger (worst) AIC value, we remove it from analyses going forward. We also write a .csv file with corr output. 
 ```{r}
-bold.correlations = Hmisc::rcorr(as.matrix(bold.data.trans[,c("RoadDistDecay", "Mod400m", "Nat100m", "Mow100m", "Build200m", "Com200m", "Res100m")]), type = c("spearman"))
+bold.correlations = rcorr(as.matrix(bold.data.trans[,c("RoadDistDecay", "Mod400m", "Nat100m", "Mow100m", "Build200m", "Com200m", "Res100m")]), type = c("spearman"))
 
 write.csv(bold.correlations$r, "Output_Tables/bold_correlation_coefficients.csv")
 
@@ -602,7 +604,7 @@ list_for_model_coeffs[[i]] <- data.frame(
 mod.outputs.bold = dplyr::bind_rows(list_for_model_coeffs)
 
 
-rm(bold.models.list, bold.data.trans, bold.model.null, list_for_model_coeffs)
+rm(bold.models.list)
 ```
 
 #### (Appendix 3 Table A3.6) Writing a CSV with coefficients, confidence intervals (95%), AIC, deltaAIC, weights, and k for each of the models that made it within 2 AIC points of the top model
@@ -616,7 +618,7 @@ mod.outputs.bold %>%
          weight = round(bold.model.dredge[1:12,]$weight, 2)) %>% # add AIC weights to model 
   write.csv("Output_Tables/coyote_boldness_regression_outputs.csv") # write csv with model outputs for all top models
 
-rm(bold.model.dredge)
+rm(bold.model.global.dredge)
 ```
 
 #### (Appendix 3 Figure A3.1) Exploring the interaction term between season and modified open habitat using the effects::package
@@ -633,7 +635,7 @@ bold.effect.plot= plot(effects::Effect(focal.predictors=c("Season", "Modified_Op
 
 # effects plot was edited in ppt to for clarity and saved as "boldness.interaction.plot.jpeg"
 
-rm(bold.data.modelling, bold.model, bold.effect.plot, bold.model.polr)
+rm(bold.data.modelling, bold.model, bold.effect.plot)
 ```
 
 
@@ -711,12 +713,12 @@ perc.scale.models.outputs <- dplyr::bind_rows(perc.scale.models)
 
 write.csv(perc.scale.models.outputs, "Output_Tables/human_concern_univariate_scale_mods.csv") # write csv 
 
-rm(perc.scale.models, perc.scale.models.outputs, null)
+rm(perc.scale.models, perc.scale.models.outputs)
 ```
 
 #### (Appendix 3 Table A3.4) Fourth, we evaluate correlations between our variables using R-squared tests. No big corrs. We also briefly write a csv file with our correlation ouptut.
 ```{r}
-concern.correlations = Hmisc::rcorr(as.matrix(perc.data.trans[,c("Mod1600m", "Mow800m", "Nat1600m", "Com100m", "Res800m")]), type = c("spearman"))
+concern.correlations = rcorr(as.matrix(perc.data.trans[,c("Mod1600m", "Mow800m", "Nat1600m", "Com100m", "Res800m")]), type = c("spearman"))
 
 write.csv(concern.correlations$r, "Output_Tables/concern_correlation_coefficients.csv")
 
@@ -763,7 +765,7 @@ list_for_model_coeffs[[i]] <- data.frame(
 
 mod.outputs.perc = dplyr::bind_rows(list_for_model_coeffs)
 
-rm(perc.models.list, perc.model.null, perc.data.trans, list_for_model_coeffs)
+rm(perc.model.dredge,  perc.models.list, perc.model.null)
 ```
 
 #### (Appendix 3 Table A3.7) Writing a CSV with coefficients, confidence intervals (95%), AIC, deltaAIC, weights, and k for each of the models that made it within 2 AIC points of the top model
@@ -777,7 +779,7 @@ mod.outputs.perc %>%
          weight = perc.model.dredge[1:20,]$weight, ) %>% # add AIC weights to model 
   write.csv("Output_Tables/human_concern_regression_outputs.csv") # write csv with model outputs for all top models
 
-rm(perc.model.dredge)
+rm(perc.model.global.dredge)
 ```
 
 #### (Appendix 3 Figure A3.2) Exploring the interaction term between year and residential habitat using the effects::package
@@ -791,9 +793,9 @@ perc.model.polr = MASS::polr(HumanPerception ~ Natural + Modified_Open + Mowed +
 summary(perc.model)
 summary(perc.model.polr)
 
-perc.effects.plot = plot(effects::Effect(focal.predictors=c("Residential", "Year"), perc.model.polr), rug = FALSE) # export this plot to a jpeg file
+plot(effects::Effect(focal.predictors=c("Residential", "Year"), perc.model.polr), rug = FALSE) # export this plot to a jpeg file
 
-rm(perc.model, perc.model.polr, perc.effects.plot, perc.data.modelling)
+rm(perc.model, perc.model.polr)
 ```
 
 ### Final plot for ordinal regression models (Figure 4)
@@ -832,9 +834,9 @@ ggplot(ordinal.outputs, aes(y=odds, x=variable)) +
         strip.background = element_rect(fill= "white")) +
   coord_flip()
 
-save_plot("Figures/MS_Figs/ordinal.regression.outputs.jpeg", ordinal.output.plot, base_width = 12, base_height= 6)
+save_plot("Figures/ordinal.regression.outputs.jpeg", ordinal.output.plot, base_width = 12, base_height= 6)
 
-rm(mod.outputs.bold, mod.outputs.perc, bold.output.top.mod, perc.output.top.mod, ordinal.outputs, ordinal.output.plot, i, j)
+rm(mod.outputs.bold, mod.outputs.perc, bold.output.top.mod, perc.output.top.mod, ordinal.outputs, ordinal.output.plot)
 ```
 
 
@@ -867,7 +869,7 @@ bold.time.plot =
   geom_bar(stat = "identity", position=position_dodge(), color = "black", alpha = 0.8) +       
   theme_bw()+ 
   geom_smooth( method = "lm", color = "black", fill="grey30", size = 1)+
-  scale_fill_brewer("Coyote Boldness", palette = "RdYlBu", direction=-1)+ 
+  scale_fill_viridis("Coyote Boldness", option = "inferno", alpha = 0.9, direction=-1, discrete = TRUE)+ 
   ylab("Percentage of classifiable reports\n")+ 
   scale_y_continuous(expand = c(0.01, 0.01), breaks = c(0,20,40, 60), limits = c(0,65), guide = guide_prism_minor()) + scale_x_continuous("Year", breaks = seq(2012, 2021, 2)) + 
   theme(axis.title = element_text(size = 16), axis.text = element_text(size = 14), 
@@ -888,7 +890,7 @@ perc.time.plot =
   theme_bw() + 
   geom_bar(stat = "identity", position=position_dodge(), color = "black", alpha =0.8) +       
   geom_smooth( method = "lm", color = "black", fill="grey30", size = 1)+
-  scale_fill_brewer("Human Concern", palette = "RdYlBu", direction=-1)+ 
+  scale_fill_viridis("Human Concern", option = "inferno", alpha = 0.9, direction=-1, discrete = TRUE)+ 
         ylab(NULL)+ 
   scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,80), breaks = c(0,20,40,60), position = "right", guide = guide_prism_minor()) + 
   scale_x_continuous("Year", breaks = seq(2012, 2021, 2)) + 
@@ -904,9 +906,10 @@ perc.time.plot =
                         lab =subset(perc.time, HumanPerception =="Positive")$total,
                    HumanPerception = factor("Positive")), aes(label = lab), size = 4)
 
-years.plot =grid.arrange(bold.time.plot, perc.time.plot, nrow = 1)
+years.plot = 
+grid.arrange(bold.time.plot, perc.time.plot, nrow = 1)
 
-save_plot("Figures/MS_Figs/boldness.concern.over.years.plot.jpeg", years.plot, base_width = 10, base_height= 10)
+save_plot("Figures/boldness.concern.over.years.plot.Nov202022.jpeg", years.plot, base_width = 10, base_height= 10)
 
 # Statistical analyses looking at changes over time: 
 
@@ -933,7 +936,7 @@ shapiro.test(subset(perc.time, HumanPerception =="Neutral")$perc) # normal
 summary(lm(perc~Year, data = subset(perc.time, HumanPerception =="Negative")))
 shapiro.test(subset(perc.time, HumanPerception =="Negative")$perc) # normal
 
-rm(bold.time, perc.time, bold.time.plot, perc.time.plot, years.plot)
+rm(bold.time, perc.time, bold.time.plot, perc.time.plot)
 
 ```
 
@@ -970,9 +973,9 @@ bold.act.chsq.resids.long$Bold = factor(bold.act.chsq.resids.long$Bold, labels =
 # plotting! 
 bold.act.chsq.plot = 
 ggplot(bold.act.chsq.resids.long, aes(y = Act, x = Bold, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color = "grey30") + 
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "white") + 
   #scale_fill_viridis(option = "turbo", direction = -1,limits = c(-20,20)) + 
-  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-11,19), breaks=c(-10,0,18), labels=c(-10, 0,18),  direction=-1)+ 
+  scale_fill_viridis("Residuals",option ="rocket", alpha = 0.9,na.value = "grey80", limits =c(-11,19), breaks=c(-10,0,18), labels=c(-10, 0,18),  direction=-1)+ 
   ylab("Human\nActivity") + xlab("Coyote Boldness") + 
   theme_bw()+   
   scale_x_discrete(expand =c(0,0), position = "top")+ scale_y_discrete(expand = c(0,0))+
@@ -1007,9 +1010,9 @@ bold.vul.chsq.resids.long = data.frame(Bold = subset(bold.vul.chsq.resids.long, 
 # plotting! 
 bold.vul.chsq.plot = 
 ggplot(bold.vul.chsq.resids.long, aes(y = Vul, x = Bold, fill = Resids)) +
-  geom_tile() + geom_text(size = 6, color = "grey30", aes(label = sig)) + 
+  geom_tile() + geom_text(size = 6, color = "white", aes(label = sig)) + 
   #scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
- scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-18,18.5), direction=-1)+ 
+ scale_fill_viridis("Residuals",option ="rocket",alpha = 0.9, na.value = "grey80", limits =c(-18,18.5), direction=-1)+ 
   ylab("Vulnerable\nIndividuals") + xlab(NULL)+
   theme_bw()+ 
   scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
@@ -1047,8 +1050,8 @@ bold.leash.chsq.resids.long = data.frame(Bold = subset(bold.leash.chsq.resids.lo
 # plotting! 
 bold.leash.chsq.plot=
   ggplot(bold.leash.chsq.resids.long, aes(y = Leash, x = Bold, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + ylab("Leash\nStatus") + xlab(NULL)+
-  scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", limits =c(-10,11), breaks  = c(-10,0,10), labels = c(-10,0,10), direction=-1)+ 
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="white") + ylab("Leash\nStatus") + xlab(NULL)+
+  scale_fill_viridis("Residuals",option ="rocket",alpha = 0.9, na.value = "grey80", limits =c(-10,11), breaks  = c(-10,0,10), labels = c(-10,0,10), direction=-1)+ 
   #scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
   theme_bw() + 
     scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
@@ -1085,10 +1088,10 @@ bold.num.chsq.resids.long = data.frame(Bold = subset(bold.num.chsq.resids.long, 
 # plotting! 
 bold.num.chsq.plot = 
 ggplot(bold.num.chsq.resids.long, aes(y = Num, x = Bold, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color = "grey30") + 
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "white") + 
  # scale_fill_viridis(option = "turbo", direction = -1, limits = c(-20,20)) +
   ylab("Coyote\nNumber") + xlab(NULL) + 
-   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-7,7.5), breaks = c(-7,0,7), labels = c(-7, 0, 7), direction=-1)+ 
+   scale_fill_viridis(option ="rocket",alpha = 0.9, na.value = "grey80", limits =c(-7,7.5), breaks = c(-7,0,7), labels = c(-7, 0, 7), direction=-1)+ 
   theme_bw() + 
     scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
   theme(legend.position = "none", 
@@ -1124,9 +1127,9 @@ bold.health.chsq.resids.long = data.frame(Bold = subset(bold.health.chsq.resids.
 # plotting! 
 bold.health.chsq.plot = 
 ggplot(bold.health.chsq.resids.long, aes(y = Health, x = Bold, fill = Resids)) +
-  geom_tile()+ geom_text(aes(label = sig), size = 6, color = "grey30") + ylab("Coyote\nHealth") + xlab(NULL) + 
+  geom_tile()+ geom_text(aes(label = sig), size = 6, color = "white") + ylab("Coyote\nHealth") + xlab(NULL) + 
   #scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-20,20)) + 
-   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-11,12.5), breaks = c(-11,0,12), labels = c(-11, 0, 12), direction=-1)+ 
+   scale_fill_viridis(option ="rocket",alpha = 0.9, na.value = "grey80", limits =c(-11,12.5), breaks = c(-11,0,12), labels = c(-11, 0, 12), direction=-1)+ 
   theme_bw() + 
   scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
   theme( axis.text.x = element_blank(),
@@ -1172,9 +1175,9 @@ perc.act.chsq.resids.long$Act = fct_relevel(perc.act.chsq.resids.long$Act,
 # plotting!
 perc.act.chsq.plot=
 ggplot(perc.act.chsq.resids.long, aes(y = Act, x = Perc, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + 
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="white") + 
   #scale_fill_viridis("Residuals", option = "turbo", direction = -1,limits = c(-15,15)) +
-   scale_fill_distiller("Residuals", palette = "RdYlBu", na.value = "grey80", limits =c(-11,19), breaks=c(-10,0,18), labels=c(-10, 0, 18), direction=-1)+ 
+   scale_fill_viridis("Residuals",alpha = 0.9, option ="rocket", na.value = "grey80", limits =c(-11,19), breaks=c(-10,0,18), labels=c(-10, 0, 18), direction=-1)+ 
   xlab("Human Concern") + ylab(NULL) + 
   scale_x_discrete(expand =c(0,0), position = "top")+ scale_y_discrete(expand = c(0,0))+
   theme_bw()+ 
@@ -1212,10 +1215,10 @@ perc.vul.chsq.resids.long = data.frame(Perc = subset(perc.vul.chsq.resids.long, 
 # plotting! 
 perc.vul.chsq.plot =
 ggplot(perc.vul.chsq.resids.long, aes(y = Vul, x = Perc, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color = "grey30") + 
+  geom_tile() + geom_text(aes(label = sig), size = 6, color = "white") + 
  # scale_fill_viridis(option = "turbo", direction = -1,limits = c(-15,15)) +
   ylab(NULL)+ xlab(NULL)+
- scale_fill_distiller("Residuals",palette = "RdYlBu", na.value = "grey80", breaks=c(-18,0,18), labels=c(-18, 0,18), limits = c(-18, 18.5), direction=-1)+ 
+ scale_fill_viridis("Residuals",alpha = 0.9, option ="rocket", na.value = "grey80", breaks=c(-18,0,18), labels=c(-18, 0,18), limits = c(-18, 18.5), direction=-1)+ 
    theme_bw()+ 
   scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
   theme(axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "right",
@@ -1261,9 +1264,9 @@ perc.leash.chsq.resids.long$Perc = fct_relevel(perc.leash.chsq.resids.long$Perc,
 # plotting! 
 perc.leash.chsq.plot=
   ggplot(perc.leash.chsq.resids.long, aes(y = Leash, x = Perc, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + ylab(NULL) + xlab(NULL)+
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="white") + ylab(NULL) + xlab(NULL)+
  # scale_fill_viridis(option = "turbo", direction = -1,limits = c(-15,15)) + 
-  scale_fill_distiller(palette = "RdYlBu", na.value = "grey80",  limits =c(-10,11), breaks  = c(-9,0,10), labels = c(-9,0,10), direction=-1)+ 
+  scale_fill_viridis(alpha = 0.9,option ="rocket", na.value = "grey80",  limits =c(-10,11), breaks  = c(-9,0,10), labels = c(-9,0,10), direction=-1)+ 
   theme_bw() + 
   scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
   theme(axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "right",
@@ -1296,8 +1299,8 @@ perc.num.chsq.resids.long = data.frame(Perc = subset(perc.num.chsq.resids.long, 
 # plotting! 
 perc.num.chsq.plot = 
   ggplot(perc.num.chsq.resids.long, aes(y = Num, x = Perc, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6,color="grey30") +
-   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-7,7.5), breaks = c(-7,0,7), labels = c(-7, 0, 7), direction=-1)+ 
+  geom_tile() + geom_text(aes(label = sig), size = 6,color="white") +
+   scale_fill_viridis(alpha = 0.9,option ="rocket", na.value = "grey80", limits =c(-7,7.5), breaks = c(-7,0,7), labels = c(-7, 0, 7), direction=-1)+ 
 
 #  scale_fill_viridis(option = "turbo", direction = -1,limits = c(-15,15)) + 
   ylab(NULL)+ xlab(NULL)+ 
@@ -1334,8 +1337,8 @@ perc.health.chsq.resids.long = data.frame(Perc = subset(perc.health.chsq.resids.
 # plotting! 
 perc.health.chsq.plot=
   ggplot(perc.health.chsq.resids.long, aes(y = Health, x = Perc, fill = Resids)) +
-  geom_tile() + geom_text(aes(label = sig), size = 6, color="grey30") + ylab(NULL) + xlab(NULL)+
-   scale_fill_distiller(palette = "RdYlBu", na.value = "grey80", limits =c(-11,12.5), breaks = c(-10,0,12), labels = c(-10, 0, 12), direction=-1)+ 
+  geom_tile() + geom_text(aes(label = sig), size = 6, color="white") + ylab(NULL) + xlab(NULL)+
+   scale_fill_viridis(alpha = 0.9, option ="rocket", na.value = "grey80", limits =c(-11,12.5), breaks = c(-10,0,12), labels = c(-10, 0, 12), direction=-1)+ 
 #  scale_fill_viridis("Residuals", option = "turbo", direction = -1, limits = c(-15,15)) +
   theme_bw() + 
   scale_x_discrete(expand =c(0,0))+ scale_y_discrete(expand = c(0,0))+
@@ -1377,12 +1380,11 @@ context.plot =
 
 
 
-save_plot("Figures/MS_Figs/context.plot.jpeg", context.plot, base_width = 10, base_height= 10)
+save_plot("Figures/context.plot.nov202022.jpeg", context.plot, base_width = 10, base_height= 10)
 
           
 rm(bold.act.chsq.plot, bold.vul.chsq.plot, bold.leash.chsq.plot, bold.num.chsq.plot, bold.health.chsq.plot, 
-   perc.act.chsq.plot, perc.vul.chsq.plot, perc.leash.chsq.plot, perc.num.chsq.plot,  perc.health.chsq.plot, 
-   context.plot)
+   perc.act.chsq.plot, perc.vul.chsq.plot, perc.leash.chsq.plot, perc.num.chsq.plot,  perc.health.chsq.plot)
 
 
 ```
